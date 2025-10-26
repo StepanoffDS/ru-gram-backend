@@ -1,0 +1,157 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+input ChangeEmailInput {
+  newEmail: String!
+  password: String!
+}
+
+input ChangePasswordInput {
+  confirmNewPassword: String!
+  currentPassword: String!
+  newPassword: String!
+}
+
+input ChangeProfileInfoInput {
+  bio: String!
+  name: String!
+  username: String!
+}
+
+input ChangeRoleInput {
+  id: String!
+  role: String!
+}
+
+input CreatePostInput {
+  images: [String!]
+  text: String
+  title: String
+}
+
+input CreateUserInput {
+  email: String!
+  password: String!
+  username: String!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+input FilterPostsInput {
+  searchTerm: String
+  skip: Int
+  sortBy: String
+  take: Int
+}
+
+input FilterUsersInput {
+  searchTerm: String
+  skip: Int
+  take: Int
+}
+
+type LikeResponseModel {
+  isLiked: Boolean!
+  likesCount: Int!
+}
+
+type LikedUserModel {
+  avatar: String
+  id: ID!
+  likedAt: DateTime!
+  name: String
+  username: String!
+}
+
+input LikesPaginationInput {
+  skip: Int! = 0
+  take: Int! = 20
+}
+
+input LoginInput {
+  login: String!
+  password: String!
+}
+
+type Mutation {
+  changeEmail(data: ChangeEmailInput!): Boolean!
+  changePassword(data: ChangePasswordInput!): Boolean!
+  changeProfileInfo(data: ChangeProfileInfoInput!): Boolean!
+  changeRole(data: ChangeRoleInput!): UserModel!
+  createPost(data: CreatePostInput!): PostModel!
+  createUser(data: CreateUserInput!): Boolean!
+  deletePost(id: String!): Boolean!
+  loginUser(data: LoginInput!): UserModel!
+  logoutUser: String!
+  toggleHidePost(postId: String!): PostModel!
+  toggleLikePost(postId: String!): LikeResponseModel!
+  updatePost(data: UpdatePostInput!, id: String!): PostModel!
+}
+
+type PaginatedLikedUsersModel {
+  data: [LikedUserModel!]!
+  hasMore: Boolean!
+  skip: Int!
+  take: Int!
+  total: Int!
+}
+
+type PostLikesModel {
+  createdAt: DateTime!
+  id: ID!
+  post: PostModel!
+  postId: String!
+  updatedAt: DateTime!
+  user: UserModel!
+  userId: String!
+}
+
+type PostModel {
+  createdAt: DateTime!
+  hidden: Boolean!
+  id: ID!
+  images: [String!]
+  isLiked: Boolean
+  likes: Int!
+  postLikes: [PostLikesModel!]!
+  text: String
+  title: String
+  updatedAt: DateTime!
+  user: UserModel!
+  userId: String!
+}
+
+type Query {
+  findAllByMe(filter: FilterPostsInput!): [PostModel!]!
+  findAllByMeHidden(filter: FilterPostsInput!): [PostModel!]!
+  findAllByUsername(filter: FilterPostsInput!, username: String!): [PostModel!]!
+  findAllPosts(filter: FilterPostsInput!): [PostModel!]!
+  findAllUsers(filter: FilterUsersInput!): [UserModel!]!
+  findMe: UserModel!
+  findOneById(id: String!): PostModel!
+  getLikedUsersByPost(pagination: LikesPaginationInput! = {skip: 0, take: 20}, postId: String!): PaginatedLikedUsersModel!
+}
+
+input UpdatePostInput {
+  text: String!
+  title: String!
+}
+
+type UserModel {
+  avatar: String
+  bio: String
+  createdAt: DateTime!
+  email: String!
+  id: ID!
+  name: String
+  password: String!
+  postLikes: [PostLikesModel!]!
+  posts: [PostModel!]!
+  role: String!
+  updatedAt: DateTime!
+  username: String!
+}
