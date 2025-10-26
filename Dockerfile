@@ -1,4 +1,5 @@
-FROM node:22-alpine AS base
+# syntax=docker/dockerfile:1.4
+FROM --platform=linux/amd64 node:22-alpine AS base
 
 RUN apk add --no-cache libc6-compat
 
