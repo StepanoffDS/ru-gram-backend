@@ -13,5 +13,6 @@ export function getGraphQLConfig(
     autoSchemaFile: join(process.cwd(), 'src/core/graphql/schema.gql'),
     sortSchema: true,
     context: ({ req, res }: { req: Request; res: Response }) => ({ req, res }),
+    introspection: true,
   };
 }
