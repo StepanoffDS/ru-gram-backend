@@ -36,7 +36,10 @@ async function bootstrap() {
       resave: false,
       saveUninitialized: false,
       cookie: {
-        domain: configService.getOrThrow<string>('SESSION_DOMAIN'),
+        ...(configService.get<string>('SESSION_DOMAIN') &&
+          configService.get<string>('SESSION_DOMAIN') !== '' && {
+            domain: configService.get<string>('SESSION_DOMAIN'),
+          }),
         maxAge: ms(configService.getOrThrow<StringValue>('SESSION_MAX_AGE')),
         httpOnly: parseBoolean(
           configService.getOrThrow<string>('SESSION_HTTP_ONLY'),
