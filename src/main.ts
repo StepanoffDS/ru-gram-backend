@@ -29,6 +29,10 @@ async function bootstrap() {
     process.exit(1);
   }
 
+  const isSecure = parseBoolean(
+    configService.getOrThrow<string>('SESSION_SECURE'),
+  );
+
   app.use(
     session({
       secret: configService.getOrThrow<string>('SESSION_SECRET'),
@@ -41,10 +45,8 @@ async function bootstrap() {
         httpOnly: parseBoolean(
           configService.getOrThrow<string>('SESSION_HTTP_ONLY'),
         ),
-        secure: parseBoolean(
-          configService.getOrThrow<string>('SESSION_SECURE'),
-        ),
-        sameSite: 'lax',
+        secure: isSecure,
+        sameSite: isSecure ? 'none' : 'lax',
       },
       store: new RedisStore({
         client: redisService.getClient(),

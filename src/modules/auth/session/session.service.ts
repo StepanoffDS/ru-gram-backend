@@ -78,10 +78,11 @@ export class SessionService {
           cookieOptions.domain = domain;
         }
 
-        cookieOptions.secure = parseBoolean(
+        const isSecure = parseBoolean(
           this.config.getOrThrow<string>('SESSION_SECURE'),
         );
-        cookieOptions.sameSite = 'lax';
+        cookieOptions.secure = isSecure;
+        cookieOptions.sameSite = isSecure ? 'none' : 'lax';
         cookieOptions.httpOnly = parseBoolean(
           this.config.getOrThrow<string>('SESSION_HTTP_ONLY'),
         );
