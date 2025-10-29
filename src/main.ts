@@ -7,6 +7,7 @@ import * as session from 'express-session';
 import * as graphqlUpload from 'graphql-upload/graphqlUploadExpress.js';
 import { CoreModule } from './core/core.module';
 import { RedisService } from './core/redis/redis.service';
+import { IS_DEV_ENV } from './shared/utils/is-dev.util';
 import { ms, type StringValue } from './shared/utils/ms.util';
 import { parseBoolean } from './shared/utils/parse-boolean.util';
 
@@ -43,7 +44,7 @@ async function bootstrap() {
         secure: parseBoolean(
           configService.getOrThrow<string>('SESSION_SECURE'),
         ),
-        sameSite: 'lax',
+        sameSite: IS_DEV_ENV ? 'lax' : 'none',
       },
       store: new RedisStore({
         client: redisService.getClient(),
