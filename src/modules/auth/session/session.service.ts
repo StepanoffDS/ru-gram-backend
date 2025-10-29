@@ -1,4 +1,5 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { parseBoolean } from '@/shared/utils/parse-boolean.util';
 import {
   Injectable,
   InternalServerErrorException,
@@ -62,7 +63,34 @@ export class SessionService {
           );
         }
 
-        req.res?.clearCookie(this.config.getOrThrow<string>('SESSION_NAME'));
+        // Необходимо передать те же параметры куки, что использовались при установке,
+        // иначе браузер может не удалить куку (особенно важно для продакшена)
+        const cookieOptions: {
+          domain?: string;
+          secure?: boolean;
+          sameSite?: boolean | 'lax' | 'strict' | 'none';
+          httpOnly?: boolean;
+          path?: string;
+        } = {};
+
+        const domain = this.config.get<string>('SESSION_DOMAIN');
+        if (domain) {
+          cookieOptions.domain = domain;
+        }
+
+        cookieOptions.secure = parseBoolean(
+          this.config.getOrThrow<string>('SESSION_SECURE'),
+        );
+        cookieOptions.sameSite = 'lax';
+        cookieOptions.httpOnly = parseBoolean(
+          this.config.getOrThrow<string>('SESSION_HTTP_ONLY'),
+        );
+        cookieOptions.path = '/';
+
+        req.res?.clearCookie(
+          this.config.getOrThrow<string>('SESSION_NAME'),
+          cookieOptions,
+        );
         return resolve(true);
       });
     });
