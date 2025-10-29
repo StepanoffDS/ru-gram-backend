@@ -6,9 +6,7 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
-import * as Upload from 'graphql-upload/Upload.js';
 import { User } from 'prisma/generated';
-import * as sharp from 'sharp';
 import { ChangeProfileInfoInput } from './inputs/change-profile-info.input';
 
 @Injectable()

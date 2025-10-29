@@ -1,4 +1,5 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { ms, type StringValue } from '@/shared/utils/ms.util';
 import { parseBoolean } from '@/shared/utils/parse-boolean.util';
 import {
   Injectable,
@@ -8,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { verify } from 'argon2';
+import * as cookieSignature from 'cookie-signature';
 import type { Request } from 'express';
 import { LoginInput } from './inputs/login.input';
 
@@ -58,6 +60,46 @@ export class SessionService {
             return reject(
               new InternalServerErrorException('Не удалось сохранить сессию'),
             );
+          }
+
+          if (req.res && req.sessionID) {
+            const sessionName = this.config.getOrThrow<string>('SESSION_NAME');
+            const sessionSecret =
+              this.config.getOrThrow<string>('SESSION_SECRET');
+            const sessionDomain = this.config.get<string>('SESSION_DOMAIN');
+            const isSecure = parseBoolean(
+              this.config.getOrThrow<string>('SESSION_SECURE'),
+            );
+            const httpOnly = parseBoolean(
+              this.config.getOrThrow<string>('SESSION_HTTP_ONLY'),
+            );
+            const maxAge = ms(
+              this.config.getOrThrow<string>('SESSION_MAX_AGE') as StringValue,
+            );
+
+            const signedSessionId =
+              's:' + cookieSignature.sign(req.sessionID, sessionSecret);
+
+            const cookieOptions: {
+              domain?: string;
+              secure?: boolean;
+              sameSite?: 'lax' | 'strict' | 'none';
+              httpOnly?: boolean;
+              path?: string;
+              maxAge?: number;
+            } = {
+              path: '/',
+              httpOnly,
+              secure: isSecure,
+              sameSite: isSecure ? 'none' : 'lax',
+              maxAge,
+            };
+
+            if (sessionDomain) {
+              cookieOptions.domain = sessionDomain;
+            }
+
+            req.res.cookie(sessionName, signedSessionId, cookieOptions);
           }
 
           resolve(user);

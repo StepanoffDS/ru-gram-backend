@@ -7,7 +7,6 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import * as Upload from 'graphql-upload/Upload.js';
 import { type Prisma } from 'prisma/generated';
 import { StorageService } from '../libs/storage/storage.service';
 import { CreatePostInput } from './inputs/create-post.input';
