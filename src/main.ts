@@ -17,9 +17,6 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const redisService = app.get(RedisService);
 
-  // Trust proxy для работы за reverse proxy (nginx)
-  app.getHttpAdapter().getInstance().set('trust proxy', 1);
-
   app.use(cookieParser(configService.getOrThrow<string>('COOKIE_SECRET')));
   app.use(configService.getOrThrow<string>('GRAPHQL_PATH'), graphqlUpload());
 
@@ -39,10 +36,7 @@ async function bootstrap() {
       resave: false,
       saveUninitialized: false,
       cookie: {
-        ...(configService.get<string>('SESSION_DOMAIN') &&
-          configService.get<string>('SESSION_DOMAIN') !== '' && {
-            domain: configService.get<string>('SESSION_DOMAIN'),
-          }),
+        domain: configService.get<string>('SESSION_DOMAIN'),
         maxAge: ms(configService.getOrThrow<StringValue>('SESSION_MAX_AGE')),
         httpOnly: parseBoolean(
           configService.getOrThrow<string>('SESSION_HTTP_ONLY'),
@@ -50,7 +44,7 @@ async function bootstrap() {
         secure: parseBoolean(
           configService.getOrThrow<string>('SESSION_SECURE'),
         ),
-        sameSite: IS_DEV_ENV ? 'lax' : 'none',
+        sameSite: 'lax',
       },
       store: new RedisStore({
         client: redisService.getClient(),
