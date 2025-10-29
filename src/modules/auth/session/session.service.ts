@@ -41,15 +41,27 @@ export class SessionService {
       req.session.createdAt = new Date().toISOString();
       req.session.userId = String(user.id);
 
-      req.session.save((err) => {
+      req.session.regenerate((err) => {
         if (err) {
-          console.error('Session save error:', err);
+          console.error('Session regenerate error:', err);
           return reject(
-            new InternalServerErrorException('Не удалось сохранить сессию'),
+            new InternalServerErrorException('Не удалось создать сессию'),
           );
         }
 
-        resolve(user);
+        req.session.createdAt = new Date().toISOString();
+        req.session.userId = String(user.id);
+
+        req.session.save((err) => {
+          if (err) {
+            console.error('Session save error:', err);
+            return reject(
+              new InternalServerErrorException('Не удалось сохранить сессию'),
+            );
+          }
+
+          resolve(user);
+        });
       });
     });
   }
