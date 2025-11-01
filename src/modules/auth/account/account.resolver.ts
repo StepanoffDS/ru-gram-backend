@@ -16,10 +16,18 @@ export class AccountResolver {
   public constructor(private readonly accountService: AccountService) {}
 
   @Auth()
-  @RolesAuth(Role.ADMIN)
   @Query(() => [UserModel], { name: 'findAllUsers' })
   public async findAll(@Args('filter') filterUsersInput: FilterUsersInput) {
     return await this.accountService.findAll(filterUsersInput);
+  }
+
+  @Auth()
+  @Query(() => UserModel, { name: 'findOneByUsername' })
+  public async findOneByUsername(
+    @Args('username') username: string,
+    @Authorized('id') id: string,
+  ) {
+    return await this.accountService.findOneByUsername(username, id);
   }
 
   @Auth()

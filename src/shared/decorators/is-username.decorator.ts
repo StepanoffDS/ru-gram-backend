@@ -13,8 +13,8 @@ export const IsUsername = () =>
     IsNotEmpty({ message: 'Username обязателен' }),
     MinLength(3, { message: 'Username должен быть не менее 3 символов' }),
     MaxLength(20, { message: 'Username должен быть не более 20 символов' }),
-    Matches(/^[a-zA-Z0-9_-]+$/, {
+    Matches(/^[a-zA-Z0-9_.-]+$/, {
       message:
-        'Username должен содержать только латинские буквы, цифры и символы - и _',
+        'Username должен содержать только латинские буквы, цифры и символы ., - и _',
     }),
   );

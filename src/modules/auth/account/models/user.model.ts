@@ -35,6 +35,9 @@ export class UserModel implements User {
   @Field(() => [PostLikesModel])
   postLikes: PostLikesModel[];
 
+  @Field(() => Boolean)
+  isMe: boolean;
+
   @Field(() => Date)
   createdAt: Date;
 

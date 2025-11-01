@@ -85,4 +85,51 @@ export class ProfileService {
 
     return true;
   }
+
+  public async deleteProfile(user: User) {
+    // Получаем все посты пользователя
+    const userPosts = await this.prismaService.post.findMany({
+      where: { userId: user.id },
+      select: { id: true, images: true },
+    });
+
+    // Удаляем все изображения постов
+    for (const post of userPosts) {
+      if (post.images && post.images.length > 0) {
+        for (const imageUrl of post.images) {
+          try {
+            await this.storageService.deleteFile(imageUrl);
+          } catch (error) {
+            console.error(`Failed to delete post image ${imageUrl}:`, error);
+          }
+        }
+      }
+    }
+
+    // Удаляем аватар пользователя
+    if (user.avatar) {
+      try {
+        await this.storageService.deleteFile(user.avatar);
+      } catch (error) {
+        console.error(`Failed to delete avatar ${user.avatar}:`, error);
+      }
+    }
+
+    // Удаляем все лайки пользователя
+    await this.prismaService.postLike.deleteMany({
+      where: { userId: user.id },
+    });
+
+    // Удаляем все посты пользователя (каскадное удаление должно быть настроено в Prisma)
+    await this.prismaService.post.deleteMany({
+      where: { userId: user.id },
+    });
+
+    // Удаляем пользователя
+    await this.prismaService.user.delete({
+      where: { id: user.id },
+    });
+
+    return true;
+  }
 }

@@ -85,6 +85,7 @@ type Mutation {
   createPost(data: CreatePostInput!): PostModel!
   createUser(data: CreateUserInput!): Boolean!
   deletePost(id: String!): Boolean!
+  deleteProfile: Boolean!
   loginUser(data: LoginInput!): UserModel!
   logoutUser: String!
   toggleHidePost(postId: String!): PostModel!
@@ -133,6 +134,7 @@ type Query {
   findAllUsers(filter: FilterUsersInput!): [UserModel!]!
   findMe: UserModel!
   findOneById(id: String!): PostModel!
+  findOneByUsername(username: String!): UserModel!
   getLikedUsersByPost(pagination: LikesPaginationInput! = {skip: 0, take: 20}, postId: String!): PaginatedLikedUsersModel!
 }
 
@@ -147,6 +149,7 @@ type UserModel {
   createdAt: DateTime!
   email: String!
   id: ID!
+  isMe: Boolean!
   name: String
   password: String!
   postLikes: [PostLikesModel!]!

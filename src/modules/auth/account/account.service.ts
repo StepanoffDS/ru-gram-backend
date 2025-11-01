@@ -7,7 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { hash, verify } from 'argon2';
-import { Role, type Prisma, type User } from 'prisma/generated';
+import { type Prisma, type User } from 'prisma/generated';
 import { ChangeEmailInput } from './inputs/change-email.input';
 import { ChangePasswordInput } from './inputs/change-password.input';
 import { ChangeRoleInput } from './inputs/change-role.input';
@@ -84,6 +84,23 @@ export class AccountService {
     const { password, ...userWithoutPassword } = user;
 
     return userWithoutPassword;
+  }
+
+  public async findOneByUsername(username: string, id: string) {
+    const user = await this.prismaService.user.findUnique({
+      where: { username },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+
+    const isMe = user.id === id;
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...userWithoutPassword } = user;
+
+    return { ...userWithoutPassword, isMe };
   }
 
   public async me(id: string) {

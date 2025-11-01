@@ -17,4 +17,9 @@ export class ProfileResolver {
   ) {
     return await this.profileService.changeInfo(user, changeProfileInfoInput);
   }
+
+  @Mutation(() => Boolean, { name: 'deleteProfile' })
+  public async deleteProfile(@Authorized() user: User) {
+    return await this.profileService.deleteProfile(user);
+  }
 }
