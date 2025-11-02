@@ -117,6 +117,7 @@ type PostModel {
   id: ID!
   images: [String!]
   isLiked: Boolean
+  isMyPost: Boolean
   likes: Int!
   postLikes: [PostLikesModel!]!
   text: String

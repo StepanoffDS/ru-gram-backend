@@ -51,6 +51,7 @@ export class PostsService {
         posts.map(async (post) => ({
           ...post,
           isLiked: await this.isPostLikedByUser(post.id, userId),
+          isMyPost: post.userId === userId,
         })),
       );
     }
@@ -138,10 +139,17 @@ export class PostsService {
       ? this.findBySearchTermFilter(searchTerm)
       : undefined;
 
+    const profileUser = await this.prismaService.user.findUnique({
+      where: { username },
+      select: { id: true },
+    });
+
+    const isOwner = userId && profileUser?.id === userId;
+
     const posts = await this.prismaService.post.findMany({
       where: {
         ...whereClause,
-        hidden: false,
+        ...(isOwner ? {} : { hidden: false }),
         user: {
           username: username,
         },
@@ -161,6 +169,7 @@ export class PostsService {
         posts.map(async (post) => ({
           ...post,
           isLiked: await this.isPostLikedByUser(post.id, userId),
+          isMyPost: post.userId === userId,
         })),
       );
     }
@@ -181,7 +190,6 @@ export class PostsService {
     const posts = await this.prismaService.post.findMany({
       where: {
         ...whereClause,
-        hidden: false,
         user: {
           id: userId,
         },
@@ -201,6 +209,7 @@ export class PostsService {
         posts.map(async (post) => ({
           ...post,
           isLiked: await this.isPostLikedByUser(post.id, userId),
+          isMyPost: post.userId === userId,
         })),
       );
     }
@@ -248,6 +257,7 @@ export class PostsService {
         posts.map(async (post) => ({
           ...post,
           isLiked: await this.isPostLikedByUser(post.id, userId),
+          isMyPost: post.userId === userId,
         })),
       );
     }

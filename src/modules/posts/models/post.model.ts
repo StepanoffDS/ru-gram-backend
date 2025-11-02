@@ -26,6 +26,9 @@ export class PostModel implements Post {
   @Field(() => Boolean, { nullable: true })
   isLiked?: boolean;
 
+  @Field(() => Boolean, { nullable: true })
+  isMyPost?: boolean;
+
   @Field(() => String)
   userId: string;
 
