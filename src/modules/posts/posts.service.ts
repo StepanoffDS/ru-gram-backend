@@ -7,7 +7,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { type Prisma } from 'prisma/generated';
+import { Role, type Prisma } from 'prisma/generated';
 import { StorageService } from '../libs/storage/storage.service';
 import { CreatePostInput } from './inputs/create-post.input';
 import { FilterPostsInput, PostSortOrder } from './inputs/filter.input';
@@ -144,12 +144,22 @@ export class PostsService {
       select: { id: true },
     });
 
+    const currentUser = userId
+      ? await this.prismaService.user.findUnique({
+          where: { id: userId },
+          select: { role: true },
+        })
+      : null;
+
     const isOwner = userId && profileUser?.id === userId;
+    const isAdmin = currentUser?.role === Role.ADMIN;
+
+    const showAllPosts = isOwner || isAdmin;
 
     const posts = await this.prismaService.post.findMany({
       where: {
         ...whereClause,
-        ...(isOwner ? {} : { hidden: false }),
+        ...(showAllPosts ? {} : { hidden: false }),
         user: {
           username: username,
         },
