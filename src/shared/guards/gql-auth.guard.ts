@@ -13,9 +13,12 @@ export class GqlAuthGuard implements CanActivate {
 
   public async canActivate(context: ExecutionContext): Promise<boolean> {
     const ctx = GqlExecutionContext.create(context);
-    const req = ctx.getContext().req;
+    const gqlContext = ctx.getContext();
+
+    const req = gqlContext.req || gqlContext.extra?.request;
 
     if (!req || !req.session) {
+      console.log('GqlAuthGuard: req or session missing');
       throw new UnauthorizedException('Пользователь не авторизован');
     }
 
@@ -34,6 +37,11 @@ export class GqlAuthGuard implements CanActivate {
     }
 
     req.user = user;
+
+    if (gqlContext.extra && !gqlContext.req) {
+      gqlContext.extra.request = req;
+    }
+
     return true;
   }
 }

@@ -21,7 +21,20 @@ export function getGraphQLConfig(
     path: configService.getOrThrow<string>('GRAPHQL_PATH'),
     autoSchemaFile: join(process.cwd(), 'src/core/graphql/schema.gql'),
     sortSchema: true,
-    context: ({ req, res }: { req: Request; res: Response }) => ({ req, res }),
+    context: ({
+      req,
+      res,
+      extra,
+    }: {
+      req: Request;
+      res: Response;
+      extra?: any;
+    }) => {
+      if (extra?.request) {
+        return { req: extra.request, res };
+      }
+      return { req, res };
+    },
     introspection: true,
     subscriptions: {
       'graphql-ws': {
