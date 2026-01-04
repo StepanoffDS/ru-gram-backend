@@ -12,6 +12,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { getGraphQLConfig } from './config/graphql.config';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
+import { RedisService } from './redis/redis.service';
 
 @Module({
   imports: [
@@ -23,7 +24,7 @@ import { RedisModule } from './redis/redis.module';
       driver: ApolloDriver,
       imports: [ConfigModule, RedisModule],
       useFactory: getGraphQLConfig,
-      inject: [ConfigService],
+      inject: [ConfigService, RedisService],
     }),
     PrismaModule,
     RedisModule,

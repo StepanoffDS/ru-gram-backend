@@ -15,6 +15,10 @@ export class GqlAuthGuard implements CanActivate {
     const ctx = GqlExecutionContext.create(context);
     const req = ctx.getContext().req;
 
+    if (!req || !req.session) {
+      throw new UnauthorizedException('Пользователь не авторизован');
+    }
+
     if (typeof req.session.userId === 'undefined') {
       throw new UnauthorizedException('Пользователь не авторизован');
     }
@@ -30,7 +34,6 @@ export class GqlAuthGuard implements CanActivate {
     }
 
     req.user = user;
-
     return true;
   }
 }

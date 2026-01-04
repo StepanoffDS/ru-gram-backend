@@ -53,9 +53,12 @@ export class ChatResolver {
       createMessageInput,
     );
 
-    // Публикуем событие о новом сообщении
     await this.redisPubSub.getPubSub().publish('MESSAGE_CREATED', {
-      messageCreated: message,
+      messageCreated: {
+        ...message,
+        createdAt: message.createdAt.toISOString(),
+        updatedAt: message.updatedAt.toISOString(),
+      },
     });
 
     return message;
@@ -104,8 +107,16 @@ export class ChatResolver {
     filter: (payload, variables) => {
       return payload.messageCreated.chatId === variables.chatId;
     },
+    resolve: (payload) => {
+      return {
+        ...payload.messageCreated,
+        createdAt: new Date(payload.messageCreated.createdAt),
+        updatedAt: new Date(payload.messageCreated.updatedAt),
+      };
+    },
   })
   messageCreated(@Args('chatId') chatId: string) {
+    void chatId;
     return this.redisPubSub.getPubSub().asyncIterator('MESSAGE_CREATED');
   }
 
