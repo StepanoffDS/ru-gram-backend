@@ -36,6 +36,8 @@ model User {
 
   posts     Post[]
   postLikes PostLike[]
+  chats     Chat[]     @relation("chat_users")
+  messages  Message[]
 
   @@map("users")
 }
@@ -53,7 +55,7 @@ model Post {
 
   likes Int @default(0)
 
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @map("user_id")
 
   postLikes PostLike[]
@@ -70,9 +72,38 @@ model PostLike {
   userId String @map("user_id")
   postId String @map("post_id")
 
-  user User @relation(fields: [userId], references: [id])
-  post Post @relation(fields: [postId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
   @@map("post_likes")
+}
+
+model Chat {
+  id String @id @default(uuid())
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users    User[]    @relation("chat_users")
+  messages Message[]
+
+  @@map("chats")
+}
+
+model Message {
+  id String @id @default(uuid())
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  content String
+  images  String[]
+
+  chatId String @map("chat_id")
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
 }

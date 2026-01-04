@@ -24,6 +24,23 @@ input ChangeRoleInput {
   role: String!
 }
 
+type ChatModel {
+  createdAt: DateTime!
+  id: ID!
+  messages: [MessageModel!]!
+  updatedAt: DateTime!
+  users: [UserModel!]!
+}
+
+input CreateChatInput {
+  userIds: [String!]!
+}
+
+input CreateMessageInput {
+  content: String!
+  images: [String!]
+}
+
 input CreatePostInput {
   images: [String!]
   text: String
@@ -77,13 +94,32 @@ input LoginInput {
   password: String!
 }
 
+type MessageModel {
+  chatId: ID!
+  content: String!
+  createdAt: DateTime!
+  id: ID!
+  images: [String!]!
+  updatedAt: DateTime!
+  user: UserModel!
+  userId: ID!
+}
+
+input MessagesPaginationInput {
+  skip: Int = 0
+  take: Int = 50
+}
+
 type Mutation {
   changeEmail(data: ChangeEmailInput!): Boolean!
   changePassword(data: ChangePasswordInput!): Boolean!
   changeProfileInfo(data: ChangeProfileInfoInput!): Boolean!
   changeRole(data: ChangeRoleInput!): UserModel!
+  createMessage(chatId: String!, data: CreateMessageInput!): MessageModel!
+  createOrFindChat(data: CreateChatInput!): ChatModel!
   createPost(data: CreatePostInput!): PostModel!
   createUser(data: CreateUserInput!): Boolean!
+  deleteMessage(messageId: String!): Boolean!
   deletePost(id: String!): Boolean!
   deleteProfile: Boolean!
   loginUser(data: LoginInput!): UserModel!
@@ -131,12 +167,20 @@ type Query {
   findAllByMe(filter: FilterPostsInput!): [PostModel!]!
   findAllByMeHidden(filter: FilterPostsInput!): [PostModel!]!
   findAllByUsername(filter: FilterPostsInput!, username: String!): [PostModel!]!
+  findAllChatsByMe: [ChatModel!]!
   findAllPosts(filter: FilterPostsInput!): [PostModel!]!
   findAllUsers(filter: FilterUsersInput!): [UserModel!]!
+  findChatById(chatId: String!): ChatModel!
   findMe: UserModel!
+  findMessagesByChatId(chatId: String!, pagination: MessagesPaginationInput = {skip: 0, take: 50}): [MessageModel!]!
   findOneById(id: String!): PostModel!
   findOneByUsername(username: String!): UserModel!
   getLikedUsersByPost(pagination: LikesPaginationInput! = {skip: 0, take: 20}, postId: String!): PaginatedLikedUsersModel!
+}
+
+type Subscription {
+  messageCreated(chatId: String!): MessageModel!
+  messageDeleted: String!
 }
 
 input UpdatePostInput {

@@ -1,6 +1,7 @@
 import { AccountModule } from '@/modules/auth/account/account.module';
 import { ProfileModule } from '@/modules/auth/profile/profile.module';
 import { SessionModule } from '@/modules/auth/session/session.module';
+import { ChatModule } from '@/modules/chat/chat.module';
 import { StorageModule } from '@/modules/libs/storage/storage.module';
 import { PostsModule } from '@/modules/posts/posts.module';
 import { IS_DEV_ENV } from '@/shared/utils/is-dev.util';
@@ -20,7 +21,7 @@ import { RedisModule } from './redis/redis.module';
     }),
     GraphQLModule.forRootAsync({
       driver: ApolloDriver,
-      imports: [ConfigModule],
+      imports: [ConfigModule, RedisModule],
       useFactory: getGraphQLConfig,
       inject: [ConfigService],
     }),
@@ -31,6 +32,7 @@ import { RedisModule } from './redis/redis.module';
     SessionModule,
     ProfileModule,
     PostsModule,
+    ChatModule,
   ],
 })
 export class CoreModule {}

@@ -1,0 +1,122 @@
+import { RedisPubSubService } from '@/core/redis/redis-pubsub.service';
+import { Auth } from '@/shared/decorators/auth.decorator';
+import { Authorized } from '@/shared/decorators/authorized.decorator';
+import { Args, Mutation, Query, Resolver, Subscription } from '@nestjs/graphql';
+import { ChatService } from './chat.service';
+import { CreateChatInput } from './inputs/create-chat.input';
+import { CreateMessageInput } from './inputs/create-message.input';
+import { MessagesPaginationInput } from './inputs/messages-pagination.input';
+import { ChatModel } from './models/chat.model';
+import { MessageModel } from './models/message.model';
+
+@Resolver('Chat')
+export class ChatResolver {
+  public constructor(
+    private readonly chatService: ChatService,
+    private readonly redisPubSub: RedisPubSubService,
+  ) {}
+
+  @Auth()
+  @Query(() => ChatModel, { name: 'findChatById' })
+  public async findChatById(
+    @Args('chatId') chatId: string,
+    @Authorized('id') userId: string,
+  ) {
+    return this.chatService.findChatById(chatId, userId);
+  }
+
+  @Auth()
+  @Query(() => [ChatModel], { name: 'findAllChatsByMe' })
+  public async findAllChatsByMe(@Authorized('id') userId: string) {
+    return this.chatService.findAllChatsByUserId(userId);
+  }
+
+  @Auth()
+  @Mutation(() => ChatModel, { name: 'createOrFindChat' })
+  public async createOrFindChat(
+    @Authorized('id') userId: string,
+    @Args('data') createChatInput: CreateChatInput,
+  ) {
+    return this.chatService.createOrFindChat(userId, createChatInput);
+  }
+
+  @Auth()
+  @Mutation(() => MessageModel, { name: 'createMessage' })
+  public async createMessage(
+    @Args('chatId') chatId: string,
+    @Authorized('id') userId: string,
+    @Args('data') createMessageInput: CreateMessageInput,
+  ) {
+    const message = await this.chatService.createMessage(
+      chatId,
+      userId,
+      createMessageInput,
+    );
+
+    // Публикуем событие о новом сообщении
+    await this.redisPubSub.getPubSub().publish('MESSAGE_CREATED', {
+      messageCreated: message,
+    });
+
+    return message;
+  }
+
+  @Auth()
+  @Query(() => [MessageModel], { name: 'findMessagesByChatId' })
+  public async findMessagesByChatId(
+    @Args('chatId') chatId: string,
+    @Authorized('id') userId: string,
+    @Args('pagination', { nullable: true, defaultValue: { skip: 0, take: 50 } })
+    paginationInput: MessagesPaginationInput,
+  ) {
+    const result = await this.chatService.findMessagesByChatId(
+      chatId,
+      userId,
+      paginationInput,
+    );
+    return result.data;
+  }
+
+  @Auth()
+  @Mutation(() => Boolean, { name: 'deleteMessage' })
+  public async deleteMessage(
+    @Args('messageId') messageId: string,
+    @Authorized('id') userId: string,
+  ) {
+    const deleted = await this.chatService.deleteMessage(messageId, userId);
+
+    if (deleted) {
+      // Публикуем событие об удалении сообщения
+      await this.redisPubSub.getPubSub().publish('MESSAGE_DELETED', {
+        messageDeleted: messageId,
+      });
+    }
+
+    return deleted;
+  }
+
+  /**
+   * Подписка на новые сообщения в конкретном чате
+   */
+  @Auth()
+  @Subscription(() => MessageModel, {
+    name: 'messageCreated',
+    filter: (payload, variables) => {
+      return payload.messageCreated.chatId === variables.chatId;
+    },
+  })
+  messageCreated(@Args('chatId') chatId: string) {
+    return this.redisPubSub.getPubSub().asyncIterator('MESSAGE_CREATED');
+  }
+
+  /**
+   * Подписка на удаление сообщений в конкретном чате
+   */
+  @Auth()
+  @Subscription(() => String, {
+    name: 'messageDeleted',
+  })
+  messageDeleted() {
+    return this.redisPubSub.getPubSub().asyncIterator('MESSAGE_DELETED');
+  }
+}

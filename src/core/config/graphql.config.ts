@@ -14,5 +14,10 @@ export function getGraphQLConfig(
     sortSchema: true,
     context: ({ req, res }: { req: Request; res: Response }) => ({ req, res }),
     introspection: true,
+    subscriptions: {
+      'graphql-ws': {
+        path: configService.getOrThrow<string>('GRAPHQL_SUBSCRIPTIONS_PATH'),
+      },
+    },
   };
 }
