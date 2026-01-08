@@ -1,4 +1,5 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { FollowsService } from '@/modules/follows/follows.service';
 import {
   BadRequestException,
   Injectable,
@@ -16,7 +17,10 @@ import { FilterUsersInput } from './inputs/filter.input';
 
 @Injectable()
 export class AccountService {
-  public constructor(private readonly prismaService: PrismaService) {}
+  public constructor(
+    private readonly prismaService: PrismaService,
+    private readonly followsService: FollowsService,
+  ) {}
 
   public async findAll(filterUsersInput: FilterUsersInput = {}) {
     const { take, skip, searchTerm } = filterUsersInput;
@@ -67,7 +71,7 @@ export class AccountService {
     };
   }
 
-  public async findOneById(id: string) {
+  public async findOneById(id: string, currentUserId?: string) {
     const user = await this.prismaService.user.findUnique({
       where: { id },
       include: {
@@ -80,10 +84,26 @@ export class AccountService {
       throw new NotFoundException('Пользователь не найден');
     }
 
+    const followersCount = await this.followsService.getFollowersCount(user.id);
+    const followingCount = await this.followsService.getFollowingCount(user.id);
+    const postsCount = await this.prismaService.post.count({
+      where: { userId: user.id, hidden: false },
+    });
+    const isFollowing =
+      currentUserId && currentUserId !== user.id
+        ? await this.followsService.isFollowing(currentUserId, user.id)
+        : undefined;
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user;
 
-    return userWithoutPassword;
+    return {
+      ...userWithoutPassword,
+      followersCount,
+      followingCount,
+      postsCount,
+      ...(isFollowing !== undefined && { isFollowing }),
+    };
   }
 
   public async findOneByUsername(username: string, id: string) {
@@ -97,10 +117,26 @@ export class AccountService {
 
     const isMe = user.id === id;
 
+    const followersCount = await this.followsService.getFollowersCount(user.id);
+    const followingCount = await this.followsService.getFollowingCount(user.id);
+    const postsCount = await this.prismaService.post.count({
+      where: { userId: user.id, hidden: false },
+    });
+    const isFollowing = isMe
+      ? false
+      : await this.followsService.isFollowing(id, user.id);
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user;
 
-    return { ...userWithoutPassword, isMe };
+    return {
+      ...userWithoutPassword,
+      isMe,
+      followersCount,
+      followingCount,
+      postsCount,
+      isFollowing,
+    };
   }
 
   public async me(id: string) {
@@ -108,7 +144,18 @@ export class AccountService {
       where: { id },
     });
 
-    return user;
+    if (!user) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+
+    const followersCount = await this.followsService.getFollowersCount(user.id);
+    const followingCount = await this.followsService.getFollowingCount(user.id);
+
+    return {
+      ...user,
+      followersCount,
+      followingCount,
+    };
   }
 
   public async changeRole(changeRoleInput: ChangeRoleInput) {

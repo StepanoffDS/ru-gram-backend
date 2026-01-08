@@ -1,4 +1,5 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { FollowsService } from '@/modules/follows/follows.service';
 import { PostImageUtil } from '@/shared/utils/post-image.util';
 import {
   BadRequestException,
@@ -19,6 +20,7 @@ export class PostsService {
   public constructor(
     private readonly prismaService: PrismaService,
     private readonly storageService: StorageService,
+    private readonly followsService: FollowsService,
   ) {}
 
   public async findAll(
@@ -57,6 +59,50 @@ export class PostsService {
     }
 
     return posts;
+  }
+
+  public async findAllByFollowing(
+    filterPostsInput: FilterPostsInput = {},
+    userId: string,
+  ) {
+    const { take, skip, searchTerm, sortBy } = filterPostsInput;
+
+    const whereClause = searchTerm
+      ? this.findBySearchTermFilter(searchTerm)
+      : undefined;
+
+    const orderBy = this.getOrderByClause(sortBy);
+
+    // Получаем список ID пользователей, на которых подписан текущий пользователь
+    const followingIds = await this.followsService.getFollowingIds(userId);
+
+    if (followingIds.length === 0) {
+      return [];
+    }
+
+    const posts = await this.prismaService.post.findMany({
+      take: take ?? 15,
+      skip: skip ?? 0,
+      where: {
+        ...whereClause,
+        hidden: false,
+        userId: {
+          in: followingIds,
+        },
+      },
+      include: {
+        user: true,
+      },
+      orderBy,
+    });
+
+    return Promise.all(
+      posts.map(async (post) => ({
+        ...post,
+        isLiked: await this.isPostLikedByUser(post.id, userId),
+        isMyPost: post.userId === userId,
+      })),
+    );
   }
 
   private getOrderByClause(

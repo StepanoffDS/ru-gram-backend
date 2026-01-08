@@ -122,15 +122,25 @@ type Mutation {
   deleteMessage(messageId: String!): Boolean!
   deletePost(id: String!): Boolean!
   deleteProfile: Boolean!
+  followUser(userId: String!): Boolean!
   loginUser(data: LoginInput!): UserModel!
   logoutUser: String!
   toggleHidePost(postId: String!): PostModel!
   toggleLikePost(postId: String!): LikeResponseModel!
+  unfollowUser(userId: String!): Boolean!
   updatePost(data: UpdatePostInput!, id: String!): PostModel!
 }
 
 type PaginatedLikedUsersModel {
   data: [LikedUserModel!]!
+  hasMore: Boolean!
+  skip: Int!
+  take: Int!
+  total: Int!
+}
+
+type PaginatedUsersModel {
+  data: [UserPreviewModel!]!
   hasMore: Boolean!
   skip: Int!
   take: Int!
@@ -164,6 +174,7 @@ type PostModel {
 }
 
 type Query {
+  findAllByFollowing(filter: FilterPostsInput!): [PostModel!]!
   findAllByMe(filter: FilterPostsInput!): [PostModel!]!
   findAllByMeHidden(filter: FilterPostsInput!): [PostModel!]!
   findAllByUsername(filter: FilterPostsInput!, username: String!): [PostModel!]!
@@ -175,7 +186,12 @@ type Query {
   findMessagesByChatId(chatId: String!, pagination: MessagesPaginationInput = {skip: 0, take: 50}): [MessageModel!]!
   findOneById(id: String!): PostModel!
   findOneByUsername(username: String!): UserModel!
+  getFollowers(skip: Int! = 0, take: Int! = 20, userId: String!): PaginatedUsersModel!
+  getFollowersCount(userId: String!): Int!
+  getFollowing(skip: Int! = 0, take: Int! = 20, userId: String!): PaginatedUsersModel!
+  getFollowingCount(userId: String!): Int!
   getLikedUsersByPost(pagination: LikesPaginationInput! = {skip: 0, take: 20}, postId: String!): PaginatedLikedUsersModel!
+  isFollowing(userId: String!): Boolean!
 }
 
 type Subscription {
@@ -193,13 +209,26 @@ type UserModel {
   bio: String
   createdAt: DateTime!
   email: String!
+  followersCount: Int
+  followingCount: Int
   id: ID!
+  isFollowing: Boolean
   isMe: Boolean!
   name: String
   password: String!
   postLikes: [PostLikesModel!]!
   posts: [PostModel!]!
+  postsCount: Int
   role: String!
   updatedAt: DateTime!
+  username: String!
+}
+
+type UserPreviewModel {
+  avatar: String
+  bio: String
+  followedAt: DateTime!
+  id: ID!
+  name: String
   username: String!
 }

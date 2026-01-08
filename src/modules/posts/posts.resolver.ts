@@ -24,6 +24,16 @@ export class PostsResolver {
     return this.postsService.findAll(filterPostsInput, userId);
   }
 
+  @Auth()
+  @Query(() => [PostModel], { name: 'findAllByFollowing' })
+  public async findAllByFollowing(
+    @Args('filter') filterPostsInput: FilterPostsInput,
+    @Authorized() user: any,
+  ) {
+    const userId = user.id;
+    return this.postsService.findAllByFollowing(filterPostsInput, userId);
+  }
+
   @Query(() => PostModel, { name: 'findOneById' })
   public async findOneById(@Args('id') id: string) {
     return this.postsService.findOneById(id);

@@ -1,6 +1,6 @@
 import { PostLikesModel } from '@/modules/posts/models/post-likes.model';
 import { PostModel } from '@/modules/posts/models/post.model';
-import { Field, ID, ObjectType } from '@nestjs/graphql';
+import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
 import { Role, User } from 'prisma/generated';
 
 @ObjectType()
@@ -37,6 +37,18 @@ export class UserModel implements User {
 
   @Field(() => Boolean)
   isMe: boolean;
+
+  @Field(() => Int, { nullable: true })
+  followersCount?: number;
+
+  @Field(() => Int, { nullable: true })
+  followingCount?: number;
+
+  @Field(() => Int, { nullable: true })
+  postsCount?: number;
+
+  @Field(() => Boolean, { nullable: true })
+  isFollowing?: boolean;
 
   @Field(() => Date)
   createdAt: Date;

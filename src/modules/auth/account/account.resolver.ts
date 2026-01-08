@@ -32,8 +32,11 @@ export class AccountResolver {
 
   @Auth()
   @Query(() => UserModel, { name: 'findOneById' })
-  public async findOneById(@Args('id') id: string) {
-    return await this.accountService.findOneById(id);
+  public async findOneById(
+    @Args('id') id: string,
+    @Authorized('id') currentUserId: string,
+  ) {
+    return await this.accountService.findOneById(id, currentUserId);
   }
 
   @Auth()
