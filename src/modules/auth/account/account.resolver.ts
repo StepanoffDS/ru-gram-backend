@@ -46,10 +46,13 @@ export class AccountResolver {
   }
 
   @Auth()
-  @RolesAuth(Role.ADMIN)
+  @RolesAuth(Role.SUPER_ADMIN)
   @Mutation(() => UserModel, { name: 'changeRole' })
-  public async changeRole(@Args('data') changeRoleInput: ChangeRoleInput) {
-    return await this.accountService.changeRole(changeRoleInput);
+  public async changeRole(
+    @Authorized('id') actorId: string,
+    @Args('data') changeRoleInput: ChangeRoleInput,
+  ) {
+    return await this.accountService.changeRole(actorId, changeRoleInput);
   }
 
   @Mutation(() => Boolean, { name: 'createUser' })

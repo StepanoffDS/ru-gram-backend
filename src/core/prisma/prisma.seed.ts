@@ -8,6 +8,15 @@ async function main() {
     Logger.log('Заполнение базы данных...');
     await prisma.user.create({
       data: {
+        email: 'superadmin@example.com',
+        username: 'superadmin',
+        password: 'password',
+        role: Role.SUPER_ADMIN,
+      },
+    });
+    Logger.log('Пользователь superadmin создан');
+    await prisma.user.create({
+      data: {
         email: 'admin@example.com',
         username: 'admin',
         password: 'password',

@@ -198,7 +198,9 @@ export class PostsService {
       : null;
 
     const isOwner = userId && profileUser?.id === userId;
-    const isAdmin = currentUser?.role === Role.ADMIN;
+    const isAdmin =
+      currentUser?.role === Role.ADMIN ||
+      currentUser?.role === Role.SUPER_ADMIN;
 
     const showAllPosts = isOwner || isAdmin;
 

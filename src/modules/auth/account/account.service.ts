@@ -2,13 +2,14 @@ import { PrismaService } from '@/core/prisma/prisma.service';
 import { FollowsService } from '@/modules/follows/follows.service';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { hash, verify } from 'argon2';
-import { type Prisma, type User } from 'prisma/generated';
+import { Role, type Prisma, type User } from 'prisma/generated';
 import { ChangeEmailInput } from './inputs/change-email.input';
 import { ChangePasswordInput } from './inputs/change-password.input';
 import { ChangeRoleInput } from './inputs/change-role.input';
@@ -158,19 +159,41 @@ export class AccountService {
     };
   }
 
-  public async changeRole(changeRoleInput: ChangeRoleInput) {
+  public async changeRole(actorId: string, changeRoleInput: ChangeRoleInput) {
     const { id, role } = changeRoleInput;
 
-    const user = await this.prismaService.user.update({
-      where: { id },
-      data: { role },
+    const actor = await this.prismaService.user.findUnique({
+      where: { id: actorId },
+      select: { role: true },
     });
 
-    if (!user) {
+    if (actor?.role !== Role.SUPER_ADMIN) {
+      throw new ForbiddenException('Недостаточно прав');
+    }
+
+    if (role !== Role.USER && role !== Role.ADMIN) {
+      throw new BadRequestException(
+        'Можно назначать только роли USER или ADMIN',
+      );
+    }
+
+    const target = await this.prismaService.user.findUnique({
+      where: { id },
+      select: { role: true },
+    });
+
+    if (!target) {
       throw new NotFoundException('Пользователь не найден');
     }
 
-    return user;
+    if (target.role === Role.SUPER_ADMIN) {
+      throw new ForbiddenException('Нельзя изменить роль супер-администратора');
+    }
+
+    return this.prismaService.user.update({
+      where: { id },
+      data: { role },
+    });
   }
 
   public async create(createUserInput: CreateUserInput) {
