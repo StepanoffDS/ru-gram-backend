@@ -58,6 +58,7 @@ export class ChatResolver {
         ...message,
         createdAt: message.createdAt.toISOString(),
         updatedAt: message.updatedAt.toISOString(),
+        _allowedUserIds: message.chat.users.map((u) => u.id),
       },
     });
 
@@ -78,6 +79,15 @@ export class ChatResolver {
       paginationInput,
     );
     return result.data;
+  }
+
+  @Auth()
+  @Mutation(() => Boolean, { name: 'markChatAsRead' })
+  public async markChatAsRead(
+    @Args('chatId') chatId: string,
+    @Authorized('id') userId: string,
+  ) {
+    return this.chatService.markChatAsRead(chatId, userId);
   }
 
   @Auth()
@@ -117,6 +127,26 @@ export class ChatResolver {
   })
   messageCreated(@Args('chatId') chatId: string) {
     void chatId;
+    return this.redisPubSub.getPubSub().asyncIterator('MESSAGE_CREATED');
+  }
+
+  @Auth()
+  @Subscription(() => MessageModel, {
+    name: 'messageCreatedForUser',
+    filter: (payload, _variables, context) => {
+      const userId = context.req?.session?.userId;
+      const allowed: string[] = payload.messageCreated._allowedUserIds ?? [];
+      return !!userId && allowed.includes(userId);
+    },
+    resolve: (payload) => {
+      return {
+        ...payload.messageCreated,
+        createdAt: new Date(payload.messageCreated.createdAt),
+        updatedAt: new Date(payload.messageCreated.updatedAt),
+      };
+    },
+  })
+  messageCreatedForUser() {
     return this.redisPubSub.getPubSub().asyncIterator('MESSAGE_CREATED');
   }
 

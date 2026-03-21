@@ -28,6 +28,7 @@ type ChatModel {
   createdAt: DateTime!
   id: ID!
   messages: [MessageModel!]!
+  unreadCount: Float!
   updatedAt: DateTime!
   users: [UserModel!]!
 }
@@ -125,6 +126,7 @@ type Mutation {
   followUser(userId: String!): Boolean!
   loginUser(data: LoginInput!): UserModel!
   logoutUser: String!
+  markChatAsRead(chatId: String!): Boolean!
   toggleHidePost(postId: String!): PostModel!
   toggleLikePost(postId: String!): LikeResponseModel!
   unfollowUser(userId: String!): Boolean!
@@ -196,6 +198,7 @@ type Query {
 
 type Subscription {
   messageCreated(chatId: String!): MessageModel!
+  messageCreatedForUser: MessageModel!
   messageDeleted: String!
 }
 

@@ -333,6 +333,54 @@ export class ChatService {
   /**
    * Найти чат по списку пользователей
    */
+  /**
+   * Количество непрочитанных сообщений для пользователя в чате
+   * (сообщения не от текущего пользователя, созданные после lastReadAt).
+   */
+  public async getUnreadMessageCount(
+    userId: string,
+    chatId: string,
+  ): Promise<number> {
+    const readState = await this.prismaService.chatReadState.findUnique({
+      where: {
+        userId_chatId: { userId, chatId },
+      },
+    });
+
+    const lastReadAt = readState?.lastReadAt ?? new Date(0);
+
+    return this.prismaService.message.count({
+      where: {
+        chatId,
+        createdAt: { gt: lastReadAt },
+        NOT: { userId },
+      },
+    });
+  }
+
+  /**
+   * Отметить чат прочитанным для текущего пользователя.
+   */
+  public async markChatAsRead(chatId: string, userId: string): Promise<boolean> {
+    await this.findChatById(chatId, userId);
+
+    await this.prismaService.chatReadState.upsert({
+      where: {
+        userId_chatId: { userId, chatId },
+      },
+      create: {
+        userId,
+        chatId,
+        lastReadAt: new Date(),
+      },
+      update: {
+        lastReadAt: new Date(),
+      },
+    });
+
+    return true;
+  }
+
   private async findChatByUsers(userIds: string[]) {
     // Находим все чаты, где участвуют все указанные пользователи
     const chats = await this.prismaService.chat.findMany({

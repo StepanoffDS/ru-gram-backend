@@ -19,4 +19,7 @@ export class ChatModel implements Chat {
 
   @Field(() => Date)
   updatedAt: Date;
+
+  @Field(() => Number)
+  unreadCount: number;
 }
