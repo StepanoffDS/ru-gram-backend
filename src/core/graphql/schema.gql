@@ -33,6 +33,12 @@ type ChatModel {
   users: [UserModel!]!
 }
 
+type ChatReadUpdateModel {
+  chatId: ID!
+  lastReadAt: DateTime!
+  userId: ID!
+}
+
 input CreateChatInput {
   userIds: [String!]!
 }
@@ -101,6 +107,9 @@ type MessageModel {
   createdAt: DateTime!
   id: ID!
   images: [String!]!
+
+  """Прочитано ли сообщение хотя бы одним другим участником чата"""
+  isReadByOtherUser: Boolean!
   updatedAt: DateTime!
   user: UserModel!
   userId: ID!
@@ -197,6 +206,7 @@ type Query {
 }
 
 type Subscription {
+  chatReadUpdated(chatId: String!): ChatReadUpdateModel!
   messageCreated(chatId: String!): MessageModel!
   messageCreatedForUser: MessageModel!
   messageDeleted: String!

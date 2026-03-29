@@ -7,6 +7,7 @@ import { CreateChatInput } from './inputs/create-chat.input';
 import { CreateMessageInput } from './inputs/create-message.input';
 import { MessagesPaginationInput } from './inputs/messages-pagination.input';
 import { ChatModel } from './models/chat.model';
+import { ChatReadUpdateModel } from './models/chat-read-update.model';
 import { MessageModel } from './models/message.model';
 
 @Resolver('Chat')
@@ -87,7 +88,23 @@ export class ChatResolver {
     @Args('chatId') chatId: string,
     @Authorized('id') userId: string,
   ) {
-    return this.chatService.markChatAsRead(chatId, userId);
+    const marked = await this.chatService.markChatAsRead(chatId, userId);
+
+    if (marked) {
+      const chat = await this.chatService.findChatById(chatId, userId);
+      const lastReadAt = new Date().toISOString();
+
+      await this.redisPubSub.getPubSub().publish('CHAT_READ_UPDATED', {
+        chatReadUpdated: {
+          chatId,
+          userId,
+          lastReadAt,
+          _allowedUserIds: chat.users.map((u) => u.id),
+        },
+      });
+    }
+
+    return marked;
   }
 
   @Auth()
@@ -148,6 +165,30 @@ export class ChatResolver {
   })
   messageCreatedForUser() {
     return this.redisPubSub.getPubSub().asyncIterator('MESSAGE_CREATED');
+  }
+
+  @Auth()
+  @Subscription(() => ChatReadUpdateModel, {
+    name: 'chatReadUpdated',
+    filter: (payload, variables, context) => {
+      const userId = context.req?.session?.userId;
+      const allowed: string[] = payload.chatReadUpdated._allowedUserIds ?? [];
+      return (
+        !!userId &&
+        allowed.includes(userId) &&
+        payload.chatReadUpdated.chatId === variables.chatId
+      );
+    },
+    resolve: (payload) => {
+      return {
+        ...payload.chatReadUpdated,
+        lastReadAt: new Date(payload.chatReadUpdated.lastReadAt),
+      };
+    },
+  })
+  chatReadUpdated(@Args('chatId') chatId: string) {
+    void chatId;
+    return this.redisPubSub.getPubSub().asyncIterator('CHAT_READ_UPDATED');
   }
 
   /**

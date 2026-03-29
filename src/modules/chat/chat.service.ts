@@ -381,6 +381,29 @@ export class ChatService {
     return true;
   }
 
+  /**
+   * Прочитано ли сообщение хотя бы одним другим участником чата.
+   */
+  public async isMessageReadByOtherUser(
+    chatId: string,
+    messageAuthorId: string,
+    messageCreatedAt: Date,
+  ): Promise<boolean> {
+    const readByOtherUsersCount = await this.prismaService.chatReadState.count({
+      where: {
+        chatId,
+        NOT: {
+          userId: messageAuthorId,
+        },
+        lastReadAt: {
+          gte: messageCreatedAt,
+        },
+      },
+    });
+
+    return readByOtherUsersCount > 0;
+  }
+
   private async findChatByUsers(userIds: string[]) {
     // Находим все чаты, где участвуют все указанные пользователи
     const chats = await this.prismaService.chat.findMany({

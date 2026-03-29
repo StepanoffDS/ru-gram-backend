@@ -22,6 +22,11 @@ export class MessageModel implements Message {
   @Field(() => UserModel)
   user: UserModel;
 
+  @Field(() => Boolean, {
+    description: 'Прочитано ли сообщение хотя бы одним другим участником чата',
+  })
+  isReadByOtherUser: boolean;
+
   @Field(() => Date)
   createdAt: Date;
 
