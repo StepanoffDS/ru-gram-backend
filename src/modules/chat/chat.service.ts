@@ -382,6 +382,91 @@ export class ChatService {
   }
 
   /**
+   * Пометить чат как важный/неважный для текущего пользователя.
+   */
+  public async setChatImportant(
+    chatId: string,
+    userId: string,
+    isImportant: boolean,
+  ): Promise<boolean> {
+    await this.findChatById(chatId, userId);
+
+    const existingState = await this.prismaService.chatReadState.findUnique({
+      where: {
+        userId_chatId: { userId, chatId },
+      },
+    });
+
+    if (!existingState && !isImportant) {
+      return true;
+    }
+
+    await this.prismaService.chatReadState.upsert({
+      where: {
+        userId_chatId: { userId, chatId },
+      },
+      create: {
+        userId,
+        chatId,
+        lastReadAt: new Date(0),
+        isImportant,
+      },
+      update: {
+        isImportant,
+      },
+    });
+
+    return true;
+  }
+
+  /**
+   * Получить флаг важности чата для текущего пользователя.
+   */
+  public async getChatImportance(userId: string, chatId: string): Promise<boolean> {
+    const readState = await this.prismaService.chatReadState.findUnique({
+      where: {
+        userId_chatId: { userId, chatId },
+      },
+      select: {
+        isImportant: true,
+      },
+    });
+
+    return readState?.isImportant ?? false;
+  }
+
+  /**
+   * Очистить историю сообщений чата для всех участников.
+   */
+  public async clearChatHistory(chatId: string, userId: string): Promise<boolean> {
+    await this.findChatById(chatId, userId);
+
+    await this.prismaService.message.deleteMany({
+      where: { chatId },
+    });
+
+    await this.prismaService.chat.update({
+      where: { id: chatId },
+      data: { updatedAt: new Date() },
+    });
+
+    return true;
+  }
+
+  /**
+   * Удалить чат для всех участников.
+   */
+  public async deleteChat(chatId: string, userId: string): Promise<boolean> {
+    await this.findChatById(chatId, userId);
+
+    await this.prismaService.chat.delete({
+      where: { id: chatId },
+    });
+
+    return true;
+  }
+
+  /**
    * Прочитано ли сообщение хотя бы одним другим участником чата.
    */
   public async isMessageReadByOtherUser(

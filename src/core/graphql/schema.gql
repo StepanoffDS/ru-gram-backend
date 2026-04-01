@@ -27,6 +27,7 @@ input ChangeRoleInput {
 type ChatModel {
   createdAt: DateTime!
   id: ID!
+  isImportant: Boolean!
   messages: [MessageModel!]!
   unreadCount: Float!
   updatedAt: DateTime!
@@ -125,10 +126,12 @@ type Mutation {
   changePassword(data: ChangePasswordInput!): Boolean!
   changeProfileInfo(data: ChangeProfileInfoInput!): Boolean!
   changeRole(data: ChangeRoleInput!): UserModel!
+  clearChatHistory(chatId: String!): Boolean!
   createMessage(chatId: String!, data: CreateMessageInput!): MessageModel!
   createOrFindChat(data: CreateChatInput!): ChatModel!
   createPost(data: CreatePostInput!): PostModel!
   createUser(data: CreateUserInput!): Boolean!
+  deleteChat(chatId: String!): Boolean!
   deleteMessage(messageId: String!): Boolean!
   deletePost(id: String!): Boolean!
   deleteProfile: Boolean!
@@ -136,6 +139,7 @@ type Mutation {
   loginUser(data: LoginInput!): UserModel!
   logoutUser: String!
   markChatAsRead(chatId: String!): Boolean!
+  setChatImportant(chatId: String!, isImportant: Boolean!): Boolean!
   toggleHidePost(postId: String!): PostModel!
   toggleLikePost(postId: String!): LikeResponseModel!
   unfollowUser(userId: String!): Boolean!

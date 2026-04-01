@@ -108,6 +108,34 @@ export class ChatResolver {
   }
 
   @Auth()
+  @Mutation(() => Boolean, { name: 'setChatImportant' })
+  public async setChatImportant(
+    @Args('chatId') chatId: string,
+    @Args('isImportant') isImportant: boolean,
+    @Authorized('id') userId: string,
+  ) {
+    return this.chatService.setChatImportant(chatId, userId, isImportant);
+  }
+
+  @Auth()
+  @Mutation(() => Boolean, { name: 'clearChatHistory' })
+  public async clearChatHistory(
+    @Args('chatId') chatId: string,
+    @Authorized('id') userId: string,
+  ) {
+    return this.chatService.clearChatHistory(chatId, userId);
+  }
+
+  @Auth()
+  @Mutation(() => Boolean, { name: 'deleteChat' })
+  public async deleteChat(
+    @Args('chatId') chatId: string,
+    @Authorized('id') userId: string,
+  ) {
+    return this.chatService.deleteChat(chatId, userId);
+  }
+
+  @Auth()
   @Mutation(() => Boolean, { name: 'deleteMessage' })
   public async deleteMessage(
     @Args('messageId') messageId: string,

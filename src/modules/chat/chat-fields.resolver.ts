@@ -16,4 +16,12 @@ export class ChatFieldsResolver {
   ): Promise<number> {
     return this.chatService.getUnreadMessageCount(userId, chat.id);
   }
+
+  @ResolveField('isImportant', () => Boolean)
+  public async isImportant(
+    @Parent() chat: ChatModel,
+    @Authorized('id') userId: string,
+  ): Promise<boolean> {
+    return this.chatService.getChatImportance(userId, chat.id);
+  }
 }

@@ -22,4 +22,7 @@ export class ChatModel implements Chat {
 
   @Field(() => Number)
   unreadCount: number;
+
+  @Field(() => Boolean)
+  isImportant: boolean;
 }
