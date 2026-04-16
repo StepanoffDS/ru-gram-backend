@@ -19,4 +19,9 @@ export class CreateMessageInput {
   @IsOptional()
   @IsArray()
   images?: string[];
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  replyToMessageId?: string;
 }

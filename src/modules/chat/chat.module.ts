@@ -5,6 +5,11 @@ import { ChatService } from './chat.service';
 import { MessageFieldsResolver } from './message-fields.resolver';
 
 @Module({
-  providers: [ChatResolver, ChatFieldsResolver, MessageFieldsResolver, ChatService],
+  providers: [
+    ChatResolver,
+    ChatFieldsResolver,
+    MessageFieldsResolver,
+    ChatService,
+  ],
 })
 export class ChatModule {}

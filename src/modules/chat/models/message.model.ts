@@ -13,6 +13,9 @@ export class MessageModel implements Message {
   @Field(() => [String])
   images: string[];
 
+  @Field(() => ID, { nullable: true })
+  replyToMessageId: string | null;
+
   @Field(() => ID)
   chatId: string;
 
@@ -21,6 +24,9 @@ export class MessageModel implements Message {
 
   @Field(() => UserModel)
   user: UserModel;
+
+  @Field(() => MessageModel, { nullable: true })
+  replyTo?: MessageModel | null;
 
   @Field(() => Boolean, {
     description: 'Прочитано ли сообщение хотя бы одним другим участником чата',

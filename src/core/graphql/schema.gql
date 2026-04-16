@@ -47,6 +47,7 @@ input CreateChatInput {
 input CreateMessageInput {
   content: String!
   images: [String!]
+  replyToMessageId: String
 }
 
 input CreatePostInput {
@@ -111,6 +112,8 @@ type MessageModel {
 
   """Прочитано ли сообщение хотя бы одним другим участником чата"""
   isReadByOtherUser: Boolean!
+  replyTo: MessageModel
+  replyToMessageId: ID
   updatedAt: DateTime!
   user: UserModel!
   userId: ID!
@@ -143,6 +146,7 @@ type Mutation {
   toggleHidePost(postId: String!): PostModel!
   toggleLikePost(postId: String!): LikeResponseModel!
   unfollowUser(userId: String!): Boolean!
+  updateMessage(data: UpdateMessageInput!, messageId: String!): MessageModel!
   updatePost(data: UpdatePostInput!, id: String!): PostModel!
 }
 
@@ -214,6 +218,11 @@ type Subscription {
   messageCreated(chatId: String!): MessageModel!
   messageCreatedForUser: MessageModel!
   messageDeleted: String!
+  messageUpdated(chatId: String!): MessageModel!
+}
+
+input UpdateMessageInput {
+  content: String!
 }
 
 input UpdatePostInput {

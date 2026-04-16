@@ -8,6 +8,7 @@ import {
 import { CreateChatInput } from './inputs/create-chat.input';
 import { CreateMessageInput } from './inputs/create-message.input';
 import { MessagesPaginationInput } from './inputs/messages-pagination.input';
+import { UpdateMessageInput } from './inputs/update-message.input';
 
 @Injectable()
 export class ChatService {
@@ -198,16 +199,35 @@ export class ChatService {
     // Проверяем доступ к чату
     await this.findChatById(chatId, userId);
 
-    const { content, images = [] } = createMessageInput;
+    const { content, images = [], replyToMessageId } = createMessageInput;
 
     if (!content.trim() && images.length === 0) {
       throw new BadRequestException('Сообщение не может быть пустым');
+    }
+
+    if (replyToMessageId) {
+      const replyToMessage = await this.prismaService.message.findFirst({
+        where: {
+          id: replyToMessageId,
+          chatId,
+        },
+        select: { id: true },
+      });
+
+      if (!replyToMessage) {
+        throw new BadRequestException('Сообщение для ответа не найдено');
+      }
     }
 
     const message = await this.prismaService.message.create({
       data: {
         content: content.trim(),
         images,
+        replyTo: replyToMessageId
+          ? {
+              connect: { id: replyToMessageId },
+            }
+          : undefined,
         chat: {
           connect: { id: chatId },
         },
@@ -222,6 +242,18 @@ export class ChatService {
             username: true,
             name: true,
             avatar: true,
+          },
+        },
+        replyTo: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                name: true,
+                avatar: true,
+              },
+            },
           },
         },
         chat: {
@@ -270,6 +302,18 @@ export class ChatService {
               avatar: true,
             },
           },
+          replyTo: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  name: true,
+                  avatar: true,
+                },
+              },
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -296,7 +340,80 @@ export class ChatService {
   public async deleteMessage(messageId: string, userId: string) {
     const message = await this.prismaService.message.findUnique({
       where: { id: messageId },
+    });
+
+    if (!message) {
+      throw new NotFoundException('Сообщение не найдено');
+    }
+
+    // Удалять сообщение может только его автор
+    const isAuthor = message.userId === userId;
+
+    if (!isAuthor) {
+      throw new ForbiddenException(
+        'У вас нет прав на удаление этого сообщения',
+      );
+    }
+
+    await this.prismaService.message.delete({
+      where: { id: messageId },
+    });
+
+    return true;
+  }
+
+  /**
+   * Обновить сообщение
+   */
+  public async updateMessage(
+    messageId: string,
+    userId: string,
+    updateMessageInput: UpdateMessageInput,
+  ) {
+    const message = await this.prismaService.message.findUnique({
+      where: { id: messageId },
+    });
+
+    if (!message) {
+      throw new NotFoundException('Сообщение не найдено');
+    }
+
+    if (message.userId !== userId) {
+      throw new ForbiddenException(
+        'У вас нет прав на редактирование этого сообщения',
+      );
+    }
+
+    const content = updateMessageInput.content.trim();
+
+    if (!content) {
+      throw new BadRequestException('Сообщение не может быть пустым');
+    }
+
+    return this.prismaService.message.update({
+      where: { id: messageId },
+      data: { content },
       include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+            avatar: true,
+          },
+        },
+        replyTo: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                name: true,
+                avatar: true,
+              },
+            },
+          },
+        },
         chat: {
           include: {
             users: {
@@ -308,26 +425,6 @@ export class ChatService {
         },
       },
     });
-
-    if (!message) {
-      throw new NotFoundException('Сообщение не найдено');
-    }
-
-    // Проверяем, что пользователь является автором сообщения или участником чата
-    const isAuthor = message.userId === userId;
-    const isParticipant = message.chat.users.some((user) => user.id === userId);
-
-    if (!isAuthor && !isParticipant) {
-      throw new ForbiddenException(
-        'У вас нет прав на удаление этого сообщения',
-      );
-    }
-
-    await this.prismaService.message.delete({
-      where: { id: messageId },
-    });
-
-    return true;
   }
 
   /**
@@ -361,7 +458,10 @@ export class ChatService {
   /**
    * Отметить чат прочитанным для текущего пользователя.
    */
-  public async markChatAsRead(chatId: string, userId: string): Promise<boolean> {
+  public async markChatAsRead(
+    chatId: string,
+    userId: string,
+  ): Promise<boolean> {
     await this.findChatById(chatId, userId);
 
     await this.prismaService.chatReadState.upsert({
@@ -422,7 +522,10 @@ export class ChatService {
   /**
    * Получить флаг важности чата для текущего пользователя.
    */
-  public async getChatImportance(userId: string, chatId: string): Promise<boolean> {
+  public async getChatImportance(
+    userId: string,
+    chatId: string,
+  ): Promise<boolean> {
     const readState = await this.prismaService.chatReadState.findUnique({
       where: {
         userId_chatId: { userId, chatId },
@@ -438,7 +541,10 @@ export class ChatService {
   /**
    * Очистить историю сообщений чата для всех участников.
    */
-  public async clearChatHistory(chatId: string, userId: string): Promise<boolean> {
+  public async clearChatHistory(
+    chatId: string,
+    userId: string,
+  ): Promise<boolean> {
     await this.findChatById(chatId, userId);
 
     await this.prismaService.message.deleteMany({

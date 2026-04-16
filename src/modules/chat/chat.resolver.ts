@@ -6,8 +6,9 @@ import { ChatService } from './chat.service';
 import { CreateChatInput } from './inputs/create-chat.input';
 import { CreateMessageInput } from './inputs/create-message.input';
 import { MessagesPaginationInput } from './inputs/messages-pagination.input';
-import { ChatModel } from './models/chat.model';
+import { UpdateMessageInput } from './inputs/update-message.input';
 import { ChatReadUpdateModel } from './models/chat-read-update.model';
+import { ChatModel } from './models/chat.model';
 import { MessageModel } from './models/message.model';
 
 @Resolver('Chat')
@@ -153,6 +154,31 @@ export class ChatResolver {
     return deleted;
   }
 
+  @Auth()
+  @Mutation(() => MessageModel, { name: 'updateMessage' })
+  public async updateMessage(
+    @Args('messageId') messageId: string,
+    @Authorized('id') userId: string,
+    @Args('data') updateMessageInput: UpdateMessageInput,
+  ) {
+    const updatedMessage = await this.chatService.updateMessage(
+      messageId,
+      userId,
+      updateMessageInput,
+    );
+
+    await this.redisPubSub.getPubSub().publish('MESSAGE_UPDATED', {
+      messageUpdated: {
+        ...updatedMessage,
+        createdAt: updatedMessage.createdAt.toISOString(),
+        updatedAt: updatedMessage.updatedAt.toISOString(),
+        _allowedUserIds: updatedMessage.chat.users.map((u) => u.id),
+      },
+    });
+
+    return updatedMessage;
+  }
+
   /**
    * Подписка на новые сообщения в конкретном чате
    */
@@ -193,6 +219,25 @@ export class ChatResolver {
   })
   messageCreatedForUser() {
     return this.redisPubSub.getPubSub().asyncIterator('MESSAGE_CREATED');
+  }
+
+  @Auth()
+  @Subscription(() => MessageModel, {
+    name: 'messageUpdated',
+    filter: (payload, variables) => {
+      return payload.messageUpdated.chatId === variables.chatId;
+    },
+    resolve: (payload) => {
+      return {
+        ...payload.messageUpdated,
+        createdAt: new Date(payload.messageUpdated.createdAt),
+        updatedAt: new Date(payload.messageUpdated.updatedAt),
+      };
+    },
+  })
+  messageUpdated(@Args('chatId') chatId: string) {
+    void chatId;
+    return this.redisPubSub.getPubSub().asyncIterator('MESSAGE_UPDATED');
   }
 
   @Auth()
