@@ -1,4 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { StorageService } from '@/modules/libs/storage/storage.service';
+import { MessageImageUtil } from '@/shared/utils/message-image.util';
 import {
   BadRequestException,
   ForbiddenException,
@@ -12,7 +14,10 @@ import { UpdateMessageInput } from './inputs/update-message.input';
 
 @Injectable()
 export class ChatService {
-  public constructor(private readonly prismaService: PrismaService) {}
+  public constructor(
+    private readonly prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
 
   /**
    * Создать новый чат или найти существующий между пользователями
@@ -201,6 +206,12 @@ export class ChatService {
 
     const { content, images = [], replyToMessageId } = createMessageInput;
 
+    if (images.length > 1) {
+      throw new BadRequestException(
+        'К сообщению можно прикрепить только одно изображение',
+      );
+    }
+
     if (!content.trim() && images.length === 0) {
       throw new BadRequestException('Сообщение не может быть пустым');
     }
@@ -275,6 +286,33 @@ export class ChatService {
     });
 
     return message;
+  }
+
+  public async uploadMessageImage(
+    chatId: string,
+    userId: string,
+    file: Express.Multer.File,
+  ) {
+    await this.findChatById(chatId, userId);
+
+    MessageImageUtil.validateImage(file.mimetype, file.size);
+
+    const isGif = MessageImageUtil.isGif(file.mimetype);
+    const processedBuffer = await MessageImageUtil.processImage(
+      file.buffer,
+      isGif,
+    );
+    const filename = MessageImageUtil.generateFilename(chatId);
+
+    await this.storageService.uploadFile(
+      processedBuffer,
+      filename,
+      'image/webp',
+    );
+
+    return {
+      imageUrl: filename,
+    };
   }
 
   /**

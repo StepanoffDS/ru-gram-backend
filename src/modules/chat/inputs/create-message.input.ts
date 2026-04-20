@@ -1,7 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 import {
+  ArrayMaxSize,
   IsArray,
-  IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
@@ -11,13 +11,13 @@ import {
 export class CreateMessageInput {
   @Field(() => String)
   @IsString()
-  @IsNotEmpty()
   @MaxLength(5000)
   content: string;
 
   @Field(() => [String], { nullable: true })
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(1)
   images?: string[];
 
   @Field(() => String, { nullable: true })
