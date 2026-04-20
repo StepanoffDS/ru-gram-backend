@@ -1,5 +1,6 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
-import { IsInt, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEnum, IsInt, IsOptional, IsString } from 'class-validator';
+import { Role } from 'prisma/generated';
 
 @InputType()
 export class FilterUsersInput {
@@ -17,4 +18,14 @@ export class FilterUsersInput {
   @IsString()
   @IsOptional()
   searchTerm?: string;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsEnum(Role)
+  role?: Role;
+
+  @Field(() => Boolean, { nullable: true })
+  @IsOptional()
+  @IsBoolean()
+  isBlocked?: boolean;
 }

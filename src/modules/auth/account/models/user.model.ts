@@ -2,6 +2,7 @@ import { PostLikesModel } from '@/modules/posts/models/post-likes.model';
 import { PostModel } from '@/modules/posts/models/post.model';
 import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
 import { Role, User } from 'prisma/generated';
+import { AdminContactModel } from './admin-contact.model';
 
 @ObjectType()
 export class UserModel implements User {
@@ -28,6 +29,17 @@ export class UserModel implements User {
 
   @Field(() => String)
   role: Role;
+
+  @Field(() => Boolean)
+  isBlocked: boolean;
+
+  @Field(() => Date, { nullable: true })
+  blockedAt: Date | null;
+
+  blockedById: string | null;
+
+  @Field(() => AdminContactModel, { nullable: true })
+  blockedBy?: AdminContactModel | null;
 
   @Field(() => [PostModel])
   posts: PostModel[];

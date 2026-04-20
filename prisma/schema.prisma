@@ -34,11 +34,16 @@ model User {
 
   avatar String?
   bio    String?
+  isBlocked Boolean @default(false) @map("is_blocked")
+  blockedAt DateTime? @map("blocked_at")
+  blockedById String? @map("blocked_by_id")
 
   posts     Post[]
   postLikes PostLike[]
   chats     Chat[]     @relation("chat_users")
   messages  Message[]
+  blockedBy User? @relation("UserBlockHistory", fields: [blockedById], references: [id], onDelete: SetNull)
+  blockedUsers User[] @relation("UserBlockHistory")
 
   following Follow[] @relation("UserFollowing")
   followers Follow[] @relation("UserFollowers")

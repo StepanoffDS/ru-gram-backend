@@ -15,6 +15,7 @@ import { ChangePasswordInput } from './inputs/change-password.input';
 import { ChangeRoleInput } from './inputs/change-role.input';
 import { CreateUserInput } from './inputs/create-user.input';
 import { FilterUsersInput } from './inputs/filter.input';
+import { ToggleUserBlockInput } from './inputs/toggle-user-block.input';
 
 @Injectable()
 export class AccountService {
@@ -24,7 +25,7 @@ export class AccountService {
   ) {}
 
   public async findAll(filterUsersInput: FilterUsersInput = {}) {
-    const { take, skip, searchTerm } = filterUsersInput;
+    const { take, skip, searchTerm, role, isBlocked } = filterUsersInput;
 
     const whereClause = searchTerm
       ? this.findBySearchTermFilter(searchTerm)
@@ -35,6 +36,19 @@ export class AccountService {
       skip: skip ?? 0,
       where: {
         ...whereClause,
+        ...(role ? { role } : {}),
+        ...(typeof isBlocked === 'boolean' ? { isBlocked } : {}),
+      },
+      include: {
+        blockedBy: {
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            name: true,
+            avatar: true,
+          },
+        },
       },
     });
 
@@ -78,6 +92,15 @@ export class AccountService {
       include: {
         posts: true,
         postLikes: true,
+        blockedBy: {
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            name: true,
+            avatar: true,
+          },
+        },
       },
     });
 
@@ -110,6 +133,17 @@ export class AccountService {
   public async findOneByUsername(username: string, id: string) {
     const user = await this.prismaService.user.findUnique({
       where: { username },
+      include: {
+        blockedBy: {
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            name: true,
+            avatar: true,
+          },
+        },
+      },
     });
 
     if (!user) {
@@ -143,6 +177,17 @@ export class AccountService {
   public async me(id: string) {
     const user = await this.prismaService.user.findUnique({
       where: { id },
+      include: {
+        blockedBy: {
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            name: true,
+            avatar: true,
+          },
+        },
+      },
     });
 
     if (!user) {
@@ -157,6 +202,19 @@ export class AccountService {
       followersCount,
       followingCount,
     };
+  }
+
+  public async findSuperAdmins() {
+    return this.prismaService.user.findMany({
+      where: { role: Role.SUPER_ADMIN },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        name: true,
+        avatar: true,
+      },
+    });
   }
 
   public async changeRole(actorId: string, changeRoleInput: ChangeRoleInput) {
@@ -193,6 +251,79 @@ export class AccountService {
     return this.prismaService.user.update({
       where: { id },
       data: { role },
+      include: {
+        blockedBy: {
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            name: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+  }
+
+  public async toggleUserBlock(
+    actorId: string,
+    toggleUserBlockInput: ToggleUserBlockInput,
+  ) {
+    const { id, isBlocked } = toggleUserBlockInput;
+
+    const actor = await this.prismaService.user.findUnique({
+      where: { id: actorId },
+      select: { role: true },
+    });
+
+    if (!actor) {
+      throw new UnauthorizedException('Пользователь не авторизован');
+    }
+
+    const target = await this.prismaService.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        role: true,
+      },
+    });
+
+    if (!target) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+
+    if (target.id === actorId) {
+      throw new BadRequestException('Нельзя заблокировать самого себя');
+    }
+
+    if (target.role === Role.SUPER_ADMIN) {
+      throw new ForbiddenException('Нельзя изменять блокировку супер-админа');
+    }
+
+    if (actor.role === Role.ADMIN && target.role !== Role.USER) {
+      throw new ForbiddenException(
+        'Администратор может блокировать только обычных пользователей',
+      );
+    }
+
+    return this.prismaService.user.update({
+      where: { id },
+      data: {
+        isBlocked,
+        blockedAt: isBlocked ? new Date() : null,
+        blockedById: isBlocked ? actorId : undefined,
+      },
+      include: {
+        blockedBy: {
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            name: true,
+            avatar: true,
+          },
+        },
+      },
     });
   }
 

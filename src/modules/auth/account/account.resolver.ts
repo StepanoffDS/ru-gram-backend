@@ -9,6 +9,8 @@ import { ChangePasswordInput } from './inputs/change-password.input';
 import { ChangeRoleInput } from './inputs/change-role.input';
 import { CreateUserInput } from './inputs/create-user.input';
 import { FilterUsersInput } from './inputs/filter.input';
+import { ToggleUserBlockInput } from './inputs/toggle-user-block.input';
+import { AdminContactModel } from './models/admin-contact.model';
 import { UserModel } from './models/user.model';
 
 @Resolver('Account')
@@ -46,6 +48,12 @@ export class AccountResolver {
   }
 
   @Auth()
+  @Query(() => [AdminContactModel], { name: 'findSuperAdmins' })
+  public async findSuperAdmins() {
+    return await this.accountService.findSuperAdmins();
+  }
+
+  @Auth()
   @RolesAuth(Role.SUPER_ADMIN)
   @Mutation(() => UserModel, { name: 'changeRole' })
   public async changeRole(
@@ -53,6 +61,16 @@ export class AccountResolver {
     @Args('data') changeRoleInput: ChangeRoleInput,
   ) {
     return await this.accountService.changeRole(actorId, changeRoleInput);
+  }
+
+  @Auth()
+  @RolesAuth(Role.ADMIN, Role.SUPER_ADMIN)
+  @Mutation(() => UserModel, { name: 'toggleUserBlock' })
+  public async toggleUserBlock(
+    @Authorized('id') actorId: string,
+    @Args('data') toggleUserBlockInput: ToggleUserBlockInput,
+  ) {
+    return await this.accountService.toggleUserBlock(actorId, toggleUserBlockInput);
   }
 
   @Mutation(() => Boolean, { name: 'createUser' })

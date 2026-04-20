@@ -2,6 +2,7 @@ import { PrismaService } from '@/core/prisma/prisma.service';
 import {
   type CanActivate,
   type ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -34,6 +35,18 @@ export class GqlAuthGuard implements CanActivate {
 
     if (!user) {
       throw new UnauthorizedException('Пользователь не найден');
+    }
+
+    const operationName = ctx.getInfo()?.fieldName;
+    const allowedBlockedOperations = new Set(['findMe', 'findSuperAdmins']);
+    const isAllowedBlockedOperation =
+      typeof operationName === 'string' &&
+      allowedBlockedOperations.has(operationName);
+
+    if (user.isBlocked && !isAllowedBlockedOperation) {
+      throw new ForbiddenException(
+        'Пользователь заблокирован. Обратитесь к супер-администратору.',
+      );
     }
 
     req.user = user;
