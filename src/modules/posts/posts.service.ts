@@ -1,5 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { FollowsService } from '@/modules/follows/follows.service';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 import { PostImageUtil } from '@/shared/utils/post-image.util';
 import {
   BadRequestException,
@@ -8,8 +9,9 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { Role, type Prisma } from 'prisma/generated';
+import { NotificationType, Role, type Prisma } from 'prisma/generated';
 import { StorageService } from '../libs/storage/storage.service';
+import { CreatePostCommentInput } from './inputs/create-post-comment.input';
 import { CreatePostInput } from './inputs/create-post.input';
 import { FilterPostsInput, PostSortOrder } from './inputs/filter.input';
 import { LikesPaginationInput } from './inputs/likes-pagination.input';
@@ -21,7 +23,15 @@ export class PostsService {
     private readonly prismaService: PrismaService,
     private readonly storageService: StorageService,
     private readonly followsService: FollowsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
+
+  private mapPostWithCommentsCount(post: any) {
+    return {
+      ...post,
+      commentsCount: post?._count?.comments ?? 0,
+    };
+  }
 
   public async findAll(
     filterPostsInput: FilterPostsInput = {},
@@ -44,6 +54,11 @@ export class PostsService {
       },
       include: {
         user: true,
+        _count: {
+          select: {
+            comments: true,
+          },
+        },
       },
       orderBy,
     });
@@ -51,14 +66,14 @@ export class PostsService {
     if (userId) {
       return Promise.all(
         posts.map(async (post) => ({
-          ...post,
+          ...this.mapPostWithCommentsCount(post),
           isLiked: await this.isPostLikedByUser(post.id, userId),
           isMyPost: post.userId === userId,
         })),
       );
     }
 
-    return posts;
+    return posts.map((post) => this.mapPostWithCommentsCount(post));
   }
 
   public async findAllByFollowing(
@@ -92,13 +107,18 @@ export class PostsService {
       },
       include: {
         user: true,
+        _count: {
+          select: {
+            comments: true,
+          },
+        },
       },
       orderBy,
     });
 
     return Promise.all(
       posts.map(async (post) => ({
-        ...post,
+        ...this.mapPostWithCommentsCount(post),
         isLiked: await this.isPostLikedByUser(post.id, userId),
         isMyPost: post.userId === userId,
       })),
@@ -166,12 +186,23 @@ export class PostsService {
   }
 
   public async findOneById(id: string) {
-    return this.prismaService.post.findUnique({
+    const post = await this.prismaService.post.findUnique({
       where: { id },
       include: {
         user: true,
+        _count: {
+          select: {
+            comments: true,
+          },
+        },
       },
     });
+
+    if (!post) {
+      return null;
+    }
+
+    return this.mapPostWithCommentsCount(post);
   }
 
   public async findAllByUsername(
@@ -214,6 +245,11 @@ export class PostsService {
       },
       include: {
         user: true,
+        _count: {
+          select: {
+            comments: true,
+          },
+        },
       },
       take: take ?? 15,
       skip: skip ?? 0,
@@ -225,14 +261,14 @@ export class PostsService {
     if (userId) {
       return Promise.all(
         posts.map(async (post) => ({
-          ...post,
+          ...this.mapPostWithCommentsCount(post),
           isLiked: await this.isPostLikedByUser(post.id, userId),
           isMyPost: post.userId === userId,
         })),
       );
     }
 
-    return posts;
+    return posts.map((post) => this.mapPostWithCommentsCount(post));
   }
 
   public async findAllByMe(
@@ -254,6 +290,11 @@ export class PostsService {
       },
       include: {
         user: true,
+        _count: {
+          select: {
+            comments: true,
+          },
+        },
       },
       take: take ?? 15,
       skip: skip ?? 0,
@@ -265,14 +306,14 @@ export class PostsService {
     if (userId) {
       return Promise.all(
         posts.map(async (post) => ({
-          ...post,
+          ...this.mapPostWithCommentsCount(post),
           isLiked: await this.isPostLikedByUser(post.id, userId),
           isMyPost: post.userId === userId,
         })),
       );
     }
 
-    return posts;
+    return posts.map((post) => this.mapPostWithCommentsCount(post));
   }
 
   public async findAllByMeHidden(
@@ -302,6 +343,11 @@ export class PostsService {
       },
       include: {
         user: true,
+        _count: {
+          select: {
+            comments: true,
+          },
+        },
       },
       take: take ?? 15,
       skip: skip ?? 0,
@@ -313,14 +359,14 @@ export class PostsService {
     if (userId) {
       return Promise.all(
         posts.map(async (post) => ({
-          ...post,
+          ...this.mapPostWithCommentsCount(post),
           isLiked: await this.isPostLikedByUser(post.id, userId),
           isMyPost: post.userId === userId,
         })),
       );
     }
 
-    return posts;
+    return posts.map((post) => this.mapPostWithCommentsCount(post));
   }
 
   public async create(userId: string, createPostInput: CreatePostInput) {
@@ -465,8 +511,139 @@ export class PostsService {
         },
       });
 
+      if (post.userId !== userId) {
+        await this.notificationsService.createNotification({
+          recipientId: post.userId,
+          actorId: userId,
+          type: NotificationType.POST_LIKE,
+          postId: post.id,
+        });
+      }
+
       return { isLiked: true, likesCount: post.likes + 1 };
     }
+  }
+
+  public async findPostComments(postId: string, _userId: string) {
+    const post = await this.prismaService.post.findUnique({
+      where: { id: postId },
+      select: { id: true },
+    });
+
+    if (!post) {
+      throw new NotFoundException('Пост не найден');
+    }
+
+    return this.prismaService.postComment.findMany({
+      where: {
+        postId,
+        parentId: null,
+      },
+      include: {
+        user: true,
+        replies: {
+          include: {
+            user: true,
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+  }
+
+  public async createComment(
+    postId: string,
+    userId: string,
+    createPostCommentInput: CreatePostCommentInput,
+  ) {
+    const content = createPostCommentInput.content.trim();
+
+    if (!content) {
+      throw new BadRequestException('Комментарий не может быть пустым');
+    }
+
+    const post = await this.prismaService.post.findUnique({
+      where: { id: postId },
+      select: { id: true, userId: true },
+    });
+
+    if (!post) {
+      throw new NotFoundException('Пост не найден');
+    }
+
+    let parentCommentAuthorId: string | null = null;
+
+    if (createPostCommentInput.parentId) {
+      const parent = await this.prismaService.postComment.findUnique({
+        where: { id: createPostCommentInput.parentId },
+        select: {
+          id: true,
+          postId: true,
+          parentId: true,
+          userId: true,
+        },
+      });
+
+      if (!parent || parent.postId !== postId) {
+        throw new BadRequestException('Родительский комментарий не найден');
+      }
+
+      if (parent.parentId) {
+        throw new BadRequestException(
+          'Допустим только один уровень вложенности комментариев',
+        );
+      }
+
+      parentCommentAuthorId = parent.userId;
+    }
+
+    const comment = await this.prismaService.postComment.create({
+      data: {
+        content,
+        postId,
+        userId,
+        parentId: createPostCommentInput.parentId ?? null,
+      },
+      include: {
+        user: true,
+        replies: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (post.userId !== userId && post.userId !== parentCommentAuthorId) {
+      await this.notificationsService.createNotification({
+        recipientId: post.userId,
+        actorId: userId,
+        type: NotificationType.POST_COMMENT,
+        postId: post.id,
+        commentId: comment.id,
+      });
+    }
+
+    if (
+      parentCommentAuthorId &&
+      parentCommentAuthorId !== userId &&
+      parentCommentAuthorId !== post.userId
+    ) {
+      await this.notificationsService.createNotification({
+        recipientId: parentCommentAuthorId,
+        actorId: userId,
+        type: NotificationType.POST_COMMENT_REPLY,
+        postId: post.id,
+        commentId: comment.id,
+      });
+    }
+
+    return comment;
   }
 
   private async isPostLikedByUser(

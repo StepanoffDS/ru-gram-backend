@@ -58,6 +58,11 @@ input CreateMessageInput {
   replyToMessageId: String
 }
 
+input CreatePostCommentInput {
+  content: String!
+  parentId: String
+}
+
 input CreatePostInput {
   images: [String!]
   text: String
@@ -88,6 +93,12 @@ input FilterUsersInput {
   searchTerm: String
   skip: Int
   take: Int
+}
+
+input FindMyNotificationsInput {
+  onlyUnread: Boolean = false
+  skip: Int = 0
+  take: Int = 20
 }
 
 type LikeResponseModel {
@@ -143,6 +154,7 @@ type Mutation {
   createMessage(chatId: String!, data: CreateMessageInput!): MessageModel!
   createOrFindChat(data: CreateChatInput!): ChatModel!
   createPost(data: CreatePostInput!): PostModel!
+  createPostComment(data: CreatePostCommentInput!, postId: String!): PostCommentModel!
   createUser(data: CreateUserInput!): Boolean!
   deleteChat(chatId: String!): Boolean!
   deleteMessage(messageId: String!): Boolean!
@@ -151,7 +163,9 @@ type Mutation {
   followUser(userId: String!): Boolean!
   loginUser(data: LoginInput!): UserModel!
   logoutUser: String!
+  markAllNotificationsAsRead: Boolean!
   markChatAsRead(chatId: String!): Boolean!
+  markNotificationAsRead(notificationId: String!): Boolean!
   setChatImportant(chatId: String!, isImportant: Boolean!): Boolean!
   toggleHidePost(postId: String!): PostModel!
   toggleLikePost(postId: String!): LikeResponseModel!
@@ -159,6 +173,37 @@ type Mutation {
   unfollowUser(userId: String!): Boolean!
   updateMessage(data: UpdateMessageInput!, messageId: String!): MessageModel!
   updatePost(data: UpdatePostInput!, id: String!): PostModel!
+}
+
+type NotificationModel {
+  actor: UserModel
+  actorId: ID
+  chat: ChatModel
+  chatId: ID
+  comment: PostCommentModel
+  commentId: ID
+  createdAt: DateTime!
+  id: ID!
+  isRead: Boolean!
+  message: MessageModel
+  messageId: ID
+  post: PostModel
+  postId: ID
+  readAt: DateTime
+  recipientId: ID!
+  type: NotificationType!
+  updatedAt: DateTime!
+}
+
+enum NotificationType {
+  NEW_MESSAGE
+  POST_COMMENT
+  POST_COMMENT_REPLY
+  POST_LIKE
+}
+
+type NotificationsUnreadCountModel {
+  total: Int!
 }
 
 type PaginatedLikedUsersModel {
@@ -177,6 +222,18 @@ type PaginatedUsersModel {
   total: Int!
 }
 
+type PostCommentModel {
+  content: String!
+  createdAt: DateTime!
+  id: ID!
+  parentId: String
+  postId: String!
+  replies: [PostCommentModel!]!
+  updatedAt: DateTime!
+  user: UserModel!
+  userId: String!
+}
+
 type PostLikesModel {
   createdAt: DateTime!
   id: ID!
@@ -188,6 +245,7 @@ type PostLikesModel {
 }
 
 type PostModel {
+  commentsCount: Int
   createdAt: DateTime!
   hidden: Boolean!
   id: ID!
@@ -214,8 +272,10 @@ type Query {
   findChatById(chatId: String!): ChatModel!
   findMe: UserModel!
   findMessagesByChatId(chatId: String!, pagination: MessagesPaginationInput = {skip: 0, take: 50}): [MessageModel!]!
+  findMyNotifications(filter: FindMyNotificationsInput = {onlyUnread: false, skip: 0, take: 20}): [NotificationModel!]!
   findOneById(id: String!): PostModel!
   findOneByUsername(username: String!): UserModel!
+  findPostComments(postId: String!): [PostCommentModel!]!
   findSuperAdmins: [AdminContactModel!]!
   getFollowers(skip: Int! = 0, take: Int! = 20, userId: String!): PaginatedUsersModel!
   getFollowersCount(userId: String!): Int!
@@ -223,6 +283,7 @@ type Query {
   getFollowingCount(userId: String!): Int!
   getLikedUsersByPost(pagination: LikesPaginationInput! = {skip: 0, take: 20}, postId: String!): PaginatedLikedUsersModel!
   isFollowing(userId: String!): Boolean!
+  notificationsUnreadCount: NotificationsUnreadCountModel!
 }
 
 type Subscription {
@@ -231,6 +292,8 @@ type Subscription {
   messageCreatedForUser: MessageModel!
   messageDeleted: String!
   messageUpdated(chatId: String!): MessageModel!
+  notificationCreatedForUser: NotificationModel!
+  notificationUpdatedForUser: NotificationModel!
 }
 
 input ToggleUserBlockInput {

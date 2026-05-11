@@ -1,4 +1,5 @@
 import { RedisPubSubService } from '@/core/redis/redis-pubsub.service';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 import { Auth } from '@/shared/decorators/auth.decorator';
 import { Authorized } from '@/shared/decorators/authorized.decorator';
 import { Args, Mutation, Query, Resolver, Subscription } from '@nestjs/graphql';
@@ -16,6 +17,7 @@ export class ChatResolver {
   public constructor(
     private readonly chatService: ChatService,
     private readonly redisPubSub: RedisPubSubService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   @Auth()
@@ -62,6 +64,13 @@ export class ChatResolver {
         updatedAt: message.updatedAt.toISOString(),
         _allowedUserIds: message.chat.users.map((u) => u.id),
       },
+    });
+
+    await this.notificationsService.createMessageNotifications({
+      chatId: message.chatId,
+      messageId: message.id,
+      senderId: userId,
+      recipientIds: message.chat.users.map((user) => user.id),
     });
 
     return message;

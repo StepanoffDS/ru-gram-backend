@@ -1,12 +1,14 @@
 import { Auth } from '@/shared/decorators/auth.decorator';
 import { Authorized } from '@/shared/decorators/authorized.decorator';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { CreatePostCommentInput } from './inputs/create-post-comment.input';
 import { CreatePostInput } from './inputs/create-post.input';
 import { FilterPostsInput } from './inputs/filter.input';
 import { LikesPaginationInput } from './inputs/likes-pagination.input';
 import { UpdatePostInput } from './inputs/update-post.input';
 import { LikeResponseModel } from './models/like-response.model';
 import { PaginatedLikedUsersModel } from './models/liked-users.model';
+import { PostCommentModel } from './models/post-comment.model';
 import { PostModel } from './models/post.model';
 import { PostsService } from './posts.service';
 
@@ -127,5 +129,24 @@ export class PostsResolver {
     @Authorized('id') userId: string,
   ) {
     return this.postsService.toggleHide(postId, userId);
+  }
+
+  @Auth()
+  @Query(() => [PostCommentModel], { name: 'findPostComments' })
+  public async findPostComments(
+    @Args('postId') postId: string,
+    @Authorized('id') userId: string,
+  ) {
+    return this.postsService.findPostComments(postId, userId);
+  }
+
+  @Auth()
+  @Mutation(() => PostCommentModel, { name: 'createPostComment' })
+  public async createPostComment(
+    @Args('postId') postId: string,
+    @Authorized('id') userId: string,
+    @Args('data') data: CreatePostCommentInput,
+  ) {
+    return this.postsService.createComment(postId, userId, data);
   }
 }

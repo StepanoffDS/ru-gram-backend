@@ -4,6 +4,7 @@ import { SessionModule } from '@/modules/auth/session/session.module';
 import { ChatModule } from '@/modules/chat/chat.module';
 import { FollowsModule } from '@/modules/follows/follows.module';
 import { StorageModule } from '@/modules/libs/storage/storage.module';
+import { NotificationsModule } from '@/modules/notifications/notifications.module';
 import { PostsModule } from '@/modules/posts/posts.module';
 import { IS_DEV_ENV } from '@/shared/utils/is-dev.util';
 import { ApolloDriver } from '@nestjs/apollo';
@@ -34,6 +35,7 @@ import { RedisService } from './redis/redis.service';
     SessionModule,
     ProfileModule,
     PostsModule,
+    NotificationsModule,
     ChatModule,
     FollowsModule,
   ],

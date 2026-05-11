@@ -23,6 +23,9 @@ export class PostModel implements Post {
   @Field(() => Int)
   likes: number;
 
+  @Field(() => Int, { nullable: true })
+  commentsCount?: number;
+
   @Field(() => Boolean, { nullable: true })
   isLiked?: boolean;
 
