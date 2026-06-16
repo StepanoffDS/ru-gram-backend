@@ -434,7 +434,7 @@ export class PostsService {
     return post;
   }
 
-  public async delete(id: string, userId: string) {
+  public async delete(id: string, userId: string, userRole: Role) {
     const existingPost = await this.prismaService.post.findUnique({
       where: { id },
     });
@@ -443,7 +443,12 @@ export class PostsService {
       throw new NotFoundException('Пост не найден');
     }
 
-    if (existingPost.userId !== userId) {
+    const canDelete =
+      existingPost.userId === userId ||
+      userRole === Role.ADMIN ||
+      userRole === Role.SUPER_ADMIN;
+
+    if (!canDelete) {
       throw new ForbiddenException('Вы можете удалять только свои посты');
     }
 

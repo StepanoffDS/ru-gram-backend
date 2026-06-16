@@ -90,6 +90,7 @@ input FilterPostsInput {
 input FilterUsersInput {
   isBlocked: Boolean
   role: String
+  roles: [String!]
   searchTerm: String
   skip: Int
   take: Int
@@ -196,6 +197,7 @@ type NotificationModel {
 }
 
 enum NotificationType {
+  NEW_FOLLOWER
   NEW_MESSAGE
   POST_COMMENT
   POST_COMMENT_REPLY

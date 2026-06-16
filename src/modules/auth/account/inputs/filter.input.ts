@@ -24,6 +24,11 @@ export class FilterUsersInput {
   @IsEnum(Role)
   role?: Role;
 
+  @Field(() => [String], { nullable: true })
+  @IsOptional()
+  @IsEnum(Role, { each: true })
+  roles?: Role[];
+
   @Field(() => Boolean, { nullable: true })
   @IsOptional()
   @IsBoolean()

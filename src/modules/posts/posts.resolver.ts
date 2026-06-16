@@ -1,6 +1,7 @@
 import { Auth } from '@/shared/decorators/auth.decorator';
 import { Authorized } from '@/shared/decorators/authorized.decorator';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Role } from 'prisma/generated';
 import { CreatePostCommentInput } from './inputs/create-post-comment.input';
 import { CreatePostInput } from './inputs/create-post.input';
 import { FilterPostsInput } from './inputs/filter.input';
@@ -109,8 +110,9 @@ export class PostsResolver {
   public async deletePost(
     @Args('id') id: string,
     @Authorized('id') userId: string,
+    @Authorized('role') userRole: Role,
   ) {
-    return this.postsService.delete(id, userId);
+    return this.postsService.delete(id, userId, userRole);
   }
 
   @Auth()

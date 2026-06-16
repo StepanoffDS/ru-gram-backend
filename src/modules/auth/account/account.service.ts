@@ -25,7 +25,8 @@ export class AccountService {
   ) {}
 
   public async findAll(filterUsersInput: FilterUsersInput = {}) {
-    const { take, skip, searchTerm, role, isBlocked } = filterUsersInput;
+    const { take, skip, searchTerm, role, roles, isBlocked } =
+      filterUsersInput;
 
     const whereClause = searchTerm
       ? this.findBySearchTermFilter(searchTerm)
@@ -36,7 +37,7 @@ export class AccountService {
       skip: skip ?? 0,
       where: {
         ...whereClause,
-        ...(role ? { role } : {}),
+        ...(roles?.length ? { role: { in: roles } } : role ? { role } : {}),
         ...(typeof isBlocked === 'boolean' ? { isBlocked } : {}),
       },
       include: {

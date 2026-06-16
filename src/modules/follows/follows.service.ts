@@ -1,13 +1,18 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { NotificationType } from 'prisma/generated';
 
 @Injectable()
 export class FollowsService {
-  public constructor(private readonly prismaService: PrismaService) {}
+  public constructor(
+    private readonly prismaService: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   public async follow(followerId: string, followingId: string) {
     if (followerId === followingId) {
@@ -40,6 +45,12 @@ export class FollowsService {
         followerId,
         followingId,
       },
+    });
+
+    await this.notificationsService.createNotification({
+      recipientId: followingId,
+      actorId: followerId,
+      type: NotificationType.NEW_FOLLOWER,
     });
 
     return true;
