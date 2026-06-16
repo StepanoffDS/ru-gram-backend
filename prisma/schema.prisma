@@ -25,6 +25,7 @@ enum NotificationType {
   POST_COMMENT
   POST_COMMENT_REPLY
   NEW_MESSAGE
+  NEW_FOLLOWER
 }
 
 model User {
