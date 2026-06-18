@@ -47,11 +47,15 @@ export class FollowsService {
       },
     });
 
-    await this.notificationsService.createNotification({
-      recipientId: followingId,
-      actorId: followerId,
-      type: NotificationType.NEW_FOLLOWER,
-    });
+    try {
+      await this.notificationsService.createNotification({
+        recipientId: followingId,
+        actorId: followerId,
+        type: NotificationType.NEW_FOLLOWER,
+      });
+    } catch (error) {
+      console.error('Failed to create follow notification:', error);
+    }
 
     return true;
   }
